@@ -1,0 +1,22 @@
+# Binaries
+misthelper-go
+misthelper-go.exe
+
+# Runtime data
+data/
+*.log
+
+# Secrets
+.env
+
+# Build artifacts
+dist/
+*.tar.gz
+*.zip
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Go
+vendor/
