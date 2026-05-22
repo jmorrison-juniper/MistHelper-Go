@@ -31,7 +31,7 @@ func TestCSVWriter_WritesFile(t *testing.T) {
 	if err != nil {                        // NewWriter must succeed for a valid CSV format
 		t.Fatalf("NewWriter: %v", err) // Fatal so subsequent nil-deref is avoided
 	}
-	defer w.Close() // Ensure writer resources are released even if assertions fail
+	defer func() { _ = w.Close() }() // Ensure writer resources are released even if assertions fail (best-effort cleanup)
 
 	if err := w.Write(context.Background(), "testEndpoint", testRecords()); err != nil { // Write test records
 		t.Fatalf("Write: %v", err) // Fatal: no point verifying the file if the write failed
@@ -63,7 +63,9 @@ func TestSQLiteWriter_WritesDB(t *testing.T) {
 	if err := w.Write(context.Background(), "listOrgSites", testRecords()); err != nil { // Write 2 rows
 		t.Fatalf("Write: %v", err) // Fatal: no point verifying the DB if the write failed
 	}
-	w.Close() // Close before re-opening so all WAL pages are flushed and visible to sql.Open
+	if err := w.Close(); err != nil { // Close before re-opening so all WAL pages are flushed
+		t.Logf("w.Close: %v", err) // Log but do not fatal -- DB verify step will catch real problems
+	}
 
 	dbPath := filepath.Join(dir, "mist_data.db") // Canonical database path used by newSQLiteWriter
 	verifyDBRows(t, dbPath, "listOrgSites", 2)   // Expect exactly 2 rows in the listOrgSites table
@@ -106,7 +108,7 @@ func verifyDBRows(t *testing.T, dbPath, table string, want int) {
 	if err != nil {                              // Must succeed -- file was created by the writer
 		t.Fatalf("open db %s: %v", dbPath, err) // Report the failing path and error
 	}
-	defer db.Close() // Release the connection after the assertion to avoid leaking handles
+	defer func() { _ = db.Close() }() // Release the connection after the assertion (best-effort; test cleanup)
 
 	query := fmt.Sprintf("SELECT COUNT(*) FROM %q", table) // Count rows in the named table
 	var got int

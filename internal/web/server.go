@@ -8,6 +8,7 @@ import (
 	"fmt"      // for fmt.Sprintf and fmt.Errorf -- address formatting and error wrapping
 	"log/slog" // for slog.Info / slog.Debug / slog.Error -- structured logging throughout
 	"net/http" // for http.Server, http.ServeMux, http.HandleFunc, ResponseWriter, Request
+	"time"     // for time.Second -- ReadHeaderTimeout duration
 
 	"github.com/jmorrison-juniper/misthelper-go/internal/api" // for api.Config -- WebPort field
 )
@@ -25,7 +26,11 @@ func NewServer(cfg api.Config) *Server {
 	mux.HandleFunc("/", rootHandler)              // Register the status endpoint on GET /
 	mux.HandleFunc("/health", healthHandler)      // Register the health check on GET /health
 	addr := fmt.Sprintf(":%d", cfg.WebPort)       // Build the listen address from the configured port
-	srv := &http.Server{Addr: addr, Handler: mux} // Wire address and mux into the underlying server
+	srv := &http.Server{ // Wire address and mux into the underlying server
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second, // Mitigate Slowloris attacks (G112) by timing out slow headers
+	}
 	return &Server{cfg: cfg, server: srv}         // Return the fully wired Server
 }
 

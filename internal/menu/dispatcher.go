@@ -48,12 +48,12 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 func (d *Dispatcher) dispatchChoice(ctx context.Context, choice string) error {
 	n, err := strconv.Atoi(choice) // Convert the user's text input to an integer menu number
 	if err != nil {                // Non-numeric input is a user mistake, not an application failure
-		fmt.Fprintf(os.Stdout, "Unknown option: %s -- type a number from the menu\n", choice) // Guide the user
+		_, _ = fmt.Fprintf(os.Stdout, "Unknown option: %s -- type a number from the menu\n", choice) // Guide the user; Fprintf error discarded (stdout write failure is unrecoverable here)
 		return nil // Non-numeric input is not a fatal error -- keep looping
 	}
 	entry, ok := d.registry.Get(n) // Look up the entry corresponding to this number
 	if !ok {                        // Number not in registry means the user typed something out of range
-		fmt.Fprintf(os.Stdout, "Unknown option: %d -- type a number from the menu\n", n) // Guide the user
+		_, _ = fmt.Fprintf(os.Stdout, "Unknown option: %d -- type a number from the menu\n", n) // Guide the user; Fprintf error discarded (stdout write failure is unrecoverable here)
 		return nil // Unknown option is not a fatal error -- keep looping
 	}
 	return d.execute(ctx, entry) // Route to execute for the confirmation gate and handler invocation
@@ -76,7 +76,7 @@ func (d *Dispatcher) execute(ctx context.Context, entry Entry) error {
 
 // confirmDestructive prompts for an exact "CONFIRM" string and returns true if the user typed it.
 func (d *Dispatcher) confirmDestructive(entry Entry) (bool, error) {
-	fmt.Fprintf(os.Stdout, "WARNING: '%s' is a destructive operation.\n", entry.Title) // Warn before prompting
+	_, _ = fmt.Fprintf(os.Stdout, "WARNING: '%s' is a destructive operation.\n", entry.Title) // Warn before prompting; Fprintf error discarded (stdout write failure is unrecoverable here)
 	slog.Info("menu: prompting for destructive confirmation", "option", entry.Number)   // Log before the blocking read
 	text, err := SafeInput(d.reader, "Type 'CONFIRM' to proceed: ", "destructive-confirm") // Read the confirmation
 	if err != nil {                                                                         // EOF means session ended mid-prompt

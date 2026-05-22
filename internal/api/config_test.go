@@ -24,7 +24,9 @@ func TestLoadConfig_ValidEnv(t *testing.T) {
 
 // TestLoadConfig_MissingToken verifies that LoadConfig returns a descriptive error when MIST_API_TOKEN is absent.
 func TestLoadConfig_MissingToken(t *testing.T) {
-	os.Unsetenv("MIST_API_TOKEN")              // Ensure token is absent for this test
+	if err := os.Unsetenv("MIST_API_TOKEN"); err != nil { // Ensure token is absent for this test
+		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- if we cannot clear the env the test is invalid
+	}
 	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc") // Org is present; token is the missing piece
 
 	_, err := LoadConfig("") // Should fail with a descriptive error
@@ -36,7 +38,9 @@ func TestLoadConfig_MissingToken(t *testing.T) {
 // TestLoadConfig_MissingOrgID verifies that LoadConfig returns a descriptive error when MIST_ORG_ID is absent.
 func TestLoadConfig_MissingOrgID(t *testing.T) {
 	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Token is present; org is the missing piece
-	os.Unsetenv("MIST_ORG_ID")                // Ensure org is absent for this test
+	if err := os.Unsetenv("MIST_ORG_ID"); err != nil { // Ensure org is absent for this test
+		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- if we cannot clear the env the test is invalid
+	}
 
 	_, err := LoadConfig("") // Should fail with a descriptive error
 	if err == nil {          // Missing required field must be an error
@@ -78,7 +82,9 @@ func TestLoadConfig_EnvFormatUsedWhenNoFlag(t *testing.T) {
 func TestLoadConfig_DefaultCSVWhenNoFlag(t *testing.T) {
 	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Required field
 	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc") // Required field
-	os.Unsetenv("OUTPUT_FORMAT")              // No env var -- should fall back to default
+	if err := os.Unsetenv("OUTPUT_FORMAT"); err != nil { // No env var -- should fall back to default
+		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- if we cannot clear the env the test result is undefined
+	}
 
 	cfg, err := LoadConfig("") // No CLI flag either
 	if err != nil {            // Config load should succeed

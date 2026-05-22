@@ -51,13 +51,13 @@ func sortedCategories(groups map[string][]Entry) []string {
 // printCategory writes the ASCII box section for one category.
 func printCategory(w io.Writer, category string, entries []Entry) {
 	sep := "+" + strings.Repeat("-", contentWidth+2) + "+" // Build separator: +---...---+
-	fmt.Fprintln(w, " "+category)                           // Print category header above the box
-	fmt.Fprintln(w, sep)                                    // Print top border of the box
+	_, _ = fmt.Fprintln(w, " "+category)                           // Print category header above the box; Fprintln error discarded (write failure unrecoverable in TUI)
+	_, _ = fmt.Fprintln(w, sep)                                    // Print top border of the box; Fprintln error discarded
 	for _, e := range entries {                             // One row per entry in this category
 		printEntry(w, e) // Delegate single-row rendering to keep this function small
 	}
-	fmt.Fprintln(w, sep) // Print bottom border to close the box
-	fmt.Fprintln(w, "")  // Blank line separates consecutive category sections
+	_, _ = fmt.Fprintln(w, sep) // Print bottom border to close the box; Fprintln error discarded
+	_, _ = fmt.Fprintln(w, "")  // Blank line separates consecutive category sections; Fprintln error discarded
 }
 
 // printEntry writes a single formatted entry row inside the box borders.

@@ -53,20 +53,26 @@ func (w *csvWriter) Write(ctx context.Context, endpoint string, records []map[st
 	}
 	slog.Info("Writing CSV output", "endpoint", endpoint, "records", len(records)) // Log before starting file I/O
 
-	ts := time.Now().Format("20060102_150405")                   // Format timestamp for a unique filename suffix
-	filename := filepath.Join(w.dataDir, endpoint+"_"+ts+".csv") // Assemble full output file path
+	ts := time.Now().Format("20060102_150405")          // Format timestamp for a unique filename suffix
+	csvName := endpoint + "_" + ts + ".csv"             // Relative filename within dataDir (no traversal possible via os.OpenRoot)
 
-	file, err := os.Create(filename) // Create or truncate the output file
-	if err != nil {                  // File creation may fail on permissions or disk full
-		return fmt.Errorf("create csv file %s: %w", filename, err) // Wrap with path context for caller
+	root, err := os.OpenRoot(w.dataDir)                  // Scope CSV creation within dataDir to prevent G304 path traversal
+	if err != nil {                                      // OpenRoot fails if dataDir was removed after startup
+		return fmt.Errorf("open data dir %s: %w", w.dataDir, err) // Wrap with dir for diagnosis
 	}
-	defer file.Close() // Ensure the OS file handle is released even if writeRecords fails
+	defer func() { _ = root.Close() }()                 // Release root fd on return (best-effort cleanup)
+
+	file, err := root.Create(csvName)                    // Create or truncate the CSV file within the scoped root
+	if err != nil {                                      // File creation may fail on permissions or disk full
+		return fmt.Errorf("create csv file %s: %w", csvName, err) // Wrap with filename context for caller
+	}
+	defer func() { _ = file.Close() }() // Ensure the OS file handle is released even if writeRecords fails (best-effort; write errors reported above)
 
 	if err := w.writeRecords(file, records); err != nil { // Delegate actual CSV row writing
-		return fmt.Errorf("write csv records to %s: %w", filename, err) // Wrap with filename context
+		return fmt.Errorf("write csv records to %s: %w", csvName, err) // Wrap with filename context
 	}
 
-	slog.Debug("CSV write complete", "endpoint", endpoint, "file", filename, "rows", len(records)) // Log after file I/O
+	slog.Debug("CSV write complete", "endpoint", endpoint, "file", csvName, "rows", len(records)) // Log after file I/O
 	return nil                                                                                       // Signal success to the caller
 }
 

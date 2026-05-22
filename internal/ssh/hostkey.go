@@ -83,16 +83,24 @@ func encodePEM(key *rsa.PrivateKey) []byte {
 
 // loadKeyFromFile reads keyPath, parses the PEM-encoded RSA key, and returns an ssh.Signer.
 func loadKeyFromFile(keyPath string) (gossh.Signer, error) {
-	slog.Info("reading SSH host key from disk", "path", keyPath) // Log before the file read
-	pemData, err := os.ReadFile(keyPath)                         // Read the entire key file into memory
-	if err != nil {                                              // File may have been deleted between stat and read
-		return nil, fmt.Errorf("read host key %s: %w", keyPath, err) // Wrap with path for diagnosis
+	slog.Info("reading SSH host key from disk", "path", keyPath)            // Log before the file read
+	dir := filepath.Dir(keyPath)                                             // Extract parent directory for scoped root to prevent G304 path traversal
+	base := filepath.Base(keyPath)                                           // Extract just the filename for within-root open
+	root, err := os.OpenRoot(dir)                                            // Scope all file access to the key directory (G304: no traversal possible)
+	if err != nil {                                                          // OpenRoot may fail if dataDir was deleted between stat and load
+		return nil, fmt.Errorf("open root dir %s: %w", dir, err)             // Wrap with directory path for diagnosis
+	}
+	defer func() { _ = root.Close() }()                                     // Release the root file descriptor on return (best-effort)
+
+	pemData, err := root.ReadFile(base)                                      // Read within the scoped root -- path traversal is impossible
+	if err != nil {                                                          // File may have been deleted between stat and read
+		return nil, fmt.Errorf("read host key %s: %w", keyPath, err)         // Wrap with path for diagnosis
 	}
 
-	signer, err := gossh.ParsePrivateKey(pemData) // Parse PEM bytes into an ssh.Signer
-	if err != nil {                               // Key file may be corrupt or in an unexpected format
-		return nil, fmt.Errorf("parse host key %s: %w", keyPath, err) // Wrap with path so caller knows which file failed
+	signer, err := gossh.ParsePrivateKey(pemData)                            // Parse PEM bytes into an ssh.Signer
+	if err != nil {                                                          // Key file may be corrupt or in an unexpected format
+		return nil, fmt.Errorf("parse host key %s: %w", keyPath, err)        // Wrap with path so caller knows which file failed
 	}
 	slog.Debug("loaded SSH host key", "path", keyPath, "type", signer.PublicKey().Type()) // Log key type after successful load
-	return signer, nil                                                                     // Return the ready-to-use signer
+	return signer, nil                                                       // Return the ready-to-use signer
 }

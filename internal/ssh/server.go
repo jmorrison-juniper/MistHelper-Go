@@ -58,10 +58,15 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	if err != nil {                                       // Bind can fail if the port is already in use
 		return fmt.Errorf("listen on %s: %w", addr, err) // Wrap with address for clear diagnostics
 	}
-	defer listener.Close()                                // Ensure the port is released when we return
+	defer func() { _ = listener.Close() }()              // Ensure the port is released when we return (error discarded; port released regardless)
 	slog.Debug("SSH server listening", "addr", addr)      // Log after successful bind
 	config := s.buildServerConfig()                       // Build SSH server config with host key and password callback
-	go func() { <-ctx.Done(); listener.Close() }()        // Close listener when context is cancelled to unblock Accept
+	go func() {                                           // Close listener when context is cancelled to unblock Accept
+		<-ctx.Done()                                      // Block until shutdown is signalled
+		if err := listener.Close(); err != nil {          // G104: check the close error on shutdown
+			slog.Error("failed to close SSH listener", "error", err) // Log so operators see unexpected close failures
+		}
+	}()
 	s.acceptLoop(ctx, listener, config)                    // Enter the accept loop; returns when listener closes
 	return nil                                             // Normal shutdown -- context was cancelled
 }
@@ -120,7 +125,7 @@ func (s *Server) handleConn(netConn net.Conn, config *gossh.ServerConfig) {
 		slog.Error("SSH handshake failed", "session", sessionID, "error", err)   // Log so operators can see failed attempts
 		return                                                                   // No channels to process -- exit the goroutine
 	}
-	defer sshConn.Close()                        // Ensure the SSH connection is closed when the session ends
+	defer func() { _ = sshConn.Close() }()      // Ensure the SSH connection is closed when the session ends (error discarded; connection closed regardless)
 	go gossh.DiscardRequests(reqs)               // Discard global SSH requests (keep-alive, etc.) we don't handle
 	if err := s.prepareSessionDir(sessionID); err != nil { // Create the isolated working directory for this session
 		slog.Error("session dir creation failed", "session", sessionID, "error", err) // Log so operators can diagnose disk issues
@@ -136,7 +141,7 @@ func (s *Server) handleConn(netConn net.Conn, config *gossh.ServerConfig) {
 func (s *Server) prepareSessionDir(sessionID string) error {
 	sessDir := filepath.Join(sessionDirBase, "session_"+sessionID) // Build the unique session directory path
 	slog.Info("creating session directory", "path", sessDir)       // Log before the directory creation
-	if err := os.MkdirAll(sessDir, 0755); err != nil {             // Create the directory (and any parents) with rwxr-xr-x
+	if err := os.MkdirAll(sessDir, 0750); err != nil {             // Create the directory with rwxr-x--- (owner+group only) per G301
 		return fmt.Errorf("create session dir %s: %w", sessDir, err) // Wrap with path so caller logs the right directory
 	}
 	slog.Debug("session directory created", "path", sessDir) // Log success after creation
@@ -157,7 +162,7 @@ func (s *Server) handleChannel(newCh gossh.NewChannel, sessionID string) {
 		slog.Error("channel accept failed", "session", sessionID, "error", err) // Log so operators can see premature disconnects
 		return                                                                   // No channel to process -- exit
 	}
-	defer channel.Close()          // Ensure the channel is closed when the request loop ends
+	defer func() { _ = channel.Close() }() // Ensure the channel is closed when the request loop ends (error discarded; channel closed regardless)
 	s.processChannelRequests(channel, requests, sessionID) // Handle incoming requests (exec/shell)
 }
 

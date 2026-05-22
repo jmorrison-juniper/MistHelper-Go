@@ -89,6 +89,6 @@ func backoffDuration(attempt int, cfg RetryConfig) time.Duration {
 	if sleep > cfg.MaxDelay {          // Cap at MaxDelay to prevent very long waits
 		sleep = cfg.MaxDelay
 	}
-	jitterNs := rand.Int63n(int64(cfg.BaseDelay)) // Random jitter in [0, BaseDelay)
+	jitterNs := rand.Int63n(int64(cfg.BaseDelay)) //nolint:gosec // G404: math/rand jitter for retry delay is not security-sensitive (not used in crypto, auth, or token generation)
 	return sleep + time.Duration(jitterNs)         // Add jitter to spread concurrent retries
 }

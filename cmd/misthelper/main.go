@@ -171,7 +171,11 @@ func main() {
 		slog.Error("initialisation failed", "error", err) // log before os.Exit so container logs capture the cause
 		os.Exit(1)                                        // non-zero exit signals container orchestration to restart
 	}
-	defer pkgs.writer.Close() // flush and close the output backend on any exit path
+	defer func() { // flush and close the output backend on any exit path
+		if err := pkgs.writer.Close(); err != nil { // check the close error to catch write-flush failures
+			slog.Error("failed to close output writer", "error", err) // log so operators know data may be incomplete
+		}
+	}()
 
 	registerStubs(pkgs.registry)  // populate registry with placeholder handlers for all 89 operations
 	startServers(ctx, pkgs)       // start SSH (port 2200) and web (port 8055) in background goroutines
