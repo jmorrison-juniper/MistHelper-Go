@@ -3,10 +3,10 @@
 package web
 
 import (
-	"context"  // for context.WithTimeout -- short deadline for the shutdown call
-	"testing"  // for testing.T -- standard Go test runner
-	"time"     // for time.Sleep and time.Second -- give ListenAndServe time to bind
-	"net"      // for net.Listen -- find a free port to avoid conflicts
+	"context" // for context.WithTimeout -- short deadline for the shutdown call
+	"net"     // for net.Listen -- find a free port to avoid conflicts
+	"testing" // for testing.T -- standard Go test runner
+	"time"    // for time.Sleep and time.Second -- give ListenAndServe time to bind
 
 	"github.com/jmorrison-juniper/misthelper-go/internal/api" // for api.Config -- builds test server config
 )
@@ -69,7 +69,7 @@ func TestListenAndServe_BindError(t *testing.T) {
 	if err != nil {                                    // If we cannot bind it means the port was taken by a race
 		t.Skipf("could not bind port %d to create conflict: %v", port, err) // Skip rather than fail on CI races
 	}
-	defer blocker.Close() // Release the blocker when the test ends
+	defer func() { _ = blocker.Close() }() // Release the blocker when the test ends
 
 	srv := NewServer(api.Config{WebPort: port}) // Build the server pointing at the occupied port
 	err = srv.ListenAndServe()                  // Must return an error because the port is taken

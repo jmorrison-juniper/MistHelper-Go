@@ -9,7 +9,7 @@ import (
 // TestEnvStr_ReturnsDefault verifies that envStr returns the default when the env var is not set.
 func TestEnvStr_ReturnsDefault(t *testing.T) {
 	t.Parallel()                              // Safe to run concurrently with other tests
-	os.Unsetenv("_MISTHELPER_TEST_ENVSTR_A")  // Ensure the variable is unset for a clean test
+	_ = os.Unsetenv("_MISTHELPER_TEST_ENVSTR_A") // Ensure the variable is unset for a clean test
 	result := envStr("_MISTHELPER_TEST_ENVSTR_A", "my-default") // Call with absent variable
 	if result != "my-default" {               // Must return the compiled default
 		t.Errorf("expected %q, got %q", "my-default", result) // Report the mismatch for debugging
@@ -39,7 +39,7 @@ func TestEnvStr_EmptyEnvVarFallsBack(t *testing.T) {
 // TestEnvInt_ReturnsDefault verifies that envInt returns the default when the env var is not set.
 func TestEnvInt_ReturnsDefault(t *testing.T) {
 	t.Parallel()                             // Safe to run concurrently
-	os.Unsetenv("_MISTHELPER_TEST_ENVINT_A") // Ensure the variable is absent
+	_ = os.Unsetenv("_MISTHELPER_TEST_ENVINT_A") // Ensure the variable is absent
 	result := envInt("_MISTHELPER_TEST_ENVINT_A", 42) // Call with absent variable
 	if result != 42 {                        // Must return the default integer
 		t.Errorf("expected 42, got %d", result) // Report actual value for debugging
