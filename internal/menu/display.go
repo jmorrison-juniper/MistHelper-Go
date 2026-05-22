@@ -67,5 +67,5 @@ func printEntry(w io.Writer, e Entry) {
 		label = label[:contentWidth]                    // Clip to the maximum printable width
 	}
 	padding := strings.Repeat(" ", contentWidth-len(label)) // Right-pad label so all rows are the same width
-	fmt.Fprintf(w, "| %s%s |\n", label, padding)            // Write the padded row between box borders
+	_, _ = fmt.Fprintf(w, "| %s%s |\n", label, padding) // Write padded row between box borders; Fprintf error discarded (TUI write failure is unrecoverable)
 }

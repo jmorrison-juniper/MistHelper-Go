@@ -99,7 +99,9 @@ func TestLoadConfig_DefaultCSVWhenNoFlag(t *testing.T) {
 func TestLoadConfig_RateLimitDefault(t *testing.T) {
 	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Required field
 	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc") // Required field
-	os.Unsetenv("API_RATE_LIMIT_MS")           // Ensure no override
+	if err := os.Unsetenv("API_RATE_LIMIT_MS"); err != nil { // Ensure no override for this test
+		t.Fatalf("os.Unsetenv: %v", err)                     // Fatal -- if env cannot be cleared the test is invalid
+	}
 
 	cfg, err := LoadConfig("") // Load with defaults
 	if err != nil {            // Should succeed
