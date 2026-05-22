@@ -2,10 +2,10 @@
 package ssh
 
 import (
-	"net"      // for net.Addr -- used in the mock ConnMetadata implementation
-	"os"       // for os.Stat -- checks key file existence after LoadOrCreateHostKey
+	"net"           // for net.Addr -- used in the mock ConnMetadata implementation
+	"os"            // for os.Stat -- checks key file existence after LoadOrCreateHostKey
 	"path/filepath" // for filepath.Join -- constructs the expected key file path
-	"testing"  // for testing.T and testing.TempDir -- standard Go test utilities
+	"testing"       // for testing.T and testing.TempDir -- standard Go test utilities
 
 	gossh "golang.org/x/crypto/ssh" // aliased to gossh to avoid conflict with the package name
 
@@ -43,17 +43,17 @@ func (m mockConnMeta) LocalAddr() net.Addr { return nil } // Not needed for pass
 func TestLoadOrCreateHostKey_CreatesKey(t *testing.T) {
 	t.Parallel() // Run independently of other tests to avoid shared-state interference
 
-	dir := t.TempDir()                                    // Create a fresh temporary directory for this test
-	signer, err := LoadOrCreateHostKey(dir)               // Call the function under test on the empty directory
-	if err != nil {                                       // Any error here means the function failed unexpectedly
+	dir := t.TempDir()                      // Create a fresh temporary directory for this test
+	signer, err := LoadOrCreateHostKey(dir) // Call the function under test on the empty directory
+	if err != nil {                         // Any error here means the function failed unexpectedly
 		t.Fatalf("LoadOrCreateHostKey returned unexpected error: %v", err) // Fail fast with the error detail
 	}
-	if signer == nil {                                    // The returned signer must be ready to use
-		t.Fatal("expected non-nil signer, got nil")       // Nil signer means the key was not parsed
+	if signer == nil { // The returned signer must be ready to use
+		t.Fatal("expected non-nil signer, got nil") // Nil signer means the key was not parsed
 	}
 
-	keyPath := filepath.Join(dir, keyFileName)            // Build the expected key file path
-	if _, err := os.Stat(keyPath); err != nil {           // The key file must exist on disk after the call
+	keyPath := filepath.Join(dir, keyFileName)  // Build the expected key file path
+	if _, err := os.Stat(keyPath); err != nil { // The key file must exist on disk after the call
 		t.Fatalf("key file not found at %s: %v", keyPath, err) // Fail with the path if the file is missing
 	}
 }
@@ -86,20 +86,20 @@ func TestLoadOrCreateHostKey_LoadsExisting(t *testing.T) {
 func TestNewServer_NotNil(t *testing.T) {
 	t.Parallel() // Run independently
 
-	dir := t.TempDir()                         // Need a real host key for NewServer (signer must be non-nil)
-	signer, err := LoadOrCreateHostKey(dir)    // Generate a throw-away key for this test
-	if err != nil {                            // Key generation must succeed to proceed
+	dir := t.TempDir()                      // Need a real host key for NewServer (signer must be non-nil)
+	signer, err := LoadOrCreateHostKey(dir) // Generate a throw-away key for this test
+	if err != nil {                         // Key generation must succeed to proceed
 		t.Fatalf("LoadOrCreateHostKey: %v", err) // Bail if we cannot generate the test key
 	}
 
-	cfg := api.Config{                         // Minimal config -- only SSHUser and SSHPassword are checked in this test
-		SSHPort:     2200,                     // Standard MistHelper SSH port
-		SSHUser:     "testuser",               // Arbitrary username for the test server
-		SSHPassword: "testpass",               // Arbitrary password for the test server
+	cfg := api.Config{ // Minimal config -- only SSHUser and SSHPassword are checked in this test
+		SSHPort:     2200,       // Standard MistHelper SSH port
+		SSHUser:     "testuser", // Arbitrary username for the test server
+		SSHPassword: "testpass", // Arbitrary password for the test server
 	}
-	registry := menu.NewRegistry()             // Empty registry is valid -- no menu entries needed for this test
+	registry := menu.NewRegistry()                  // Empty registry is valid -- no menu entries needed for this test
 	server := NewServer(cfg, signer, registry, nil) // nil writer is acceptable when no menu handlers run
-	if server == nil {                         // NewServer must never return nil
+	if server == nil {                              // NewServer must never return nil
 		t.Fatal("expected non-nil *Server, got nil") // Fail fast if the constructor returned nil
 	}
 }
@@ -109,44 +109,44 @@ func TestNewServer_NotNil(t *testing.T) {
 func TestServer_PasswordAuth(t *testing.T) {
 	t.Parallel() // Run independently
 
-	const validUser = "admin"    // Username that the server is configured to accept
-	const validPass = "s3cret!"  // Password that the server is configured to accept
+	const validUser = "admin"   // Username that the server is configured to accept
+	const validPass = "s3cret!" // Password that the server is configured to accept
 
-	dir := t.TempDir()                         // Temp dir for host key generation
-	signer, err := LoadOrCreateHostKey(dir)    // Generate a throw-away host key
-	if err != nil {                            // Key generation must succeed before testing auth
+	dir := t.TempDir()                      // Temp dir for host key generation
+	signer, err := LoadOrCreateHostKey(dir) // Generate a throw-away host key
+	if err != nil {                         // Key generation must succeed before testing auth
 		t.Fatalf("LoadOrCreateHostKey: %v", err) // Bail if key generation fails
 	}
 
-	cfg := api.Config{              // Server config with the expected credentials
-		SSHUser:     validUser,     // The only username the server accepts
-		SSHPassword: validPass,     // The only password the server accepts
+	cfg := api.Config{ // Server config with the expected credentials
+		SSHUser:     validUser, // The only username the server accepts
+		SSHPassword: validPass, // The only password the server accepts
 	}
 	server := NewServer(cfg, signer, menu.NewRegistry(), nil) // Build server with the test credentials
 
 	tests := []struct { // Table-driven sub-tests for all credential combinations
-		name    string // Descriptive test name shown on failure
-		user    string // Username to present to the callback
-		pass    string // Password to present to the callback
-		wantOK  bool   // Whether the callback should return non-nil Permissions
+		name   string // Descriptive test name shown on failure
+		user   string // Username to present to the callback
+		pass   string // Password to present to the callback
+		wantOK bool   // Whether the callback should return non-nil Permissions
 	}{
-		{"correct credentials",    validUser,  validPass,    true},  // Should be accepted
-		{"wrong password",         validUser,  "wrongpass",  false}, // Should be rejected
-		{"wrong username",         "nobody",   validPass,    false}, // Should be rejected
-		{"both wrong",             "hacker",   "letmein",    false}, // Should be rejected
-		{"empty username",         "",         validPass,    false}, // Should be rejected
-		{"empty password",         validUser,  "",           false}, // Should be rejected
+		{"correct credentials", validUser, validPass, true}, // Should be accepted
+		{"wrong password", validUser, "wrongpass", false},   // Should be rejected
+		{"wrong username", "nobody", validPass, false},      // Should be rejected
+		{"both wrong", "hacker", "letmein", false},          // Should be rejected
+		{"empty username", "", validPass, false},            // Should be rejected
+		{"empty password", validUser, "", false},            // Should be rejected
 	}
 
-	for _, tc := range tests {                                        // Iterate through each credential combination
-		t.Run(tc.name, func(t *testing.T) {                          // Run each combination as a named sub-test
-			t.Parallel()                                             // Sub-tests can run concurrently
-			meta := mockConnMeta{user: tc.user}                      // Wrap the test username in the mock ConnMetadata
+	for _, tc := range tests { // Iterate through each credential combination
+		t.Run(tc.name, func(t *testing.T) { // Run each combination as a named sub-test
+			t.Parallel()                                                 // Sub-tests can run concurrently
+			meta := mockConnMeta{user: tc.user}                          // Wrap the test username in the mock ConnMetadata
 			perms, err := server.validatePassword(meta, []byte(tc.pass)) // Call the password callback directly
-			if tc.wantOK && (perms == nil || err != nil) {           // Expected acceptance but got rejection
+			if tc.wantOK && (perms == nil || err != nil) {               // Expected acceptance but got rejection
 				t.Errorf("expected acceptance but got perms=%v err=%v", perms, err) // Report both values for debugging
 			}
-			if !tc.wantOK && (perms != nil || err == nil) {          // Expected rejection but got acceptance
+			if !tc.wantOK && (perms != nil || err == nil) { // Expected rejection but got acceptance
 				t.Errorf("expected rejection but got perms=%v err=%v", perms, err) // Report both values for debugging
 			}
 		})

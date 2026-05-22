@@ -46,24 +46,24 @@ func newCSVWriter(dataDir string) *csvWriter {
 // Write creates a CSV file named {endpoint}_{timestamp}.csv in dataDir
 // and writes all records to it.  Each record is flattened before writing.
 func (w *csvWriter) Write(ctx context.Context, endpoint string, records []map[string]any) error {
-	_ = ctx // Context reserved for future cancellation support; unused in file I/O today
+	_ = ctx                // Context reserved for future cancellation support; unused in file I/O today
 	if len(records) == 0 { // Skip file creation entirely if there is nothing to write
 		slog.Debug("CSV write skipped: no records", "endpoint", endpoint) // Log the skip so operators aren't confused
-		return nil                                                         // Return nil -- empty is not an error
+		return nil                                                        // Return nil -- empty is not an error
 	}
 	slog.Info("Writing CSV output", "endpoint", endpoint, "records", len(records)) // Log before starting file I/O
 
-	ts := time.Now().Format("20060102_150405")          // Format timestamp for a unique filename suffix
-	csvName := endpoint + "_" + ts + ".csv"             // Relative filename within dataDir (no traversal possible via os.OpenRoot)
+	ts := time.Now().Format("20060102_150405") // Format timestamp for a unique filename suffix
+	csvName := endpoint + "_" + ts + ".csv"    // Relative filename within dataDir (no traversal possible via os.OpenRoot)
 
-	root, err := os.OpenRoot(w.dataDir)                  // Scope CSV creation within dataDir to prevent G304 path traversal
-	if err != nil {                                      // OpenRoot fails if dataDir was removed after startup
+	root, err := os.OpenRoot(w.dataDir) // Scope CSV creation within dataDir to prevent G304 path traversal
+	if err != nil {                     // OpenRoot fails if dataDir was removed after startup
 		return fmt.Errorf("open data dir %s: %w", w.dataDir, err) // Wrap with dir for diagnosis
 	}
-	defer func() { _ = root.Close() }()                 // Release root fd on return (best-effort cleanup)
+	defer func() { _ = root.Close() }() // Release root fd on return (best-effort cleanup)
 
-	file, err := root.Create(csvName)                    // Create or truncate the CSV file within the scoped root
-	if err != nil {                                      // File creation may fail on permissions or disk full
+	file, err := root.Create(csvName) // Create or truncate the CSV file within the scoped root
+	if err != nil {                   // File creation may fail on permissions or disk full
 		return fmt.Errorf("create csv file %s: %w", csvName, err) // Wrap with filename context for caller
 	}
 	defer func() { _ = file.Close() }() // Ensure the OS file handle is released even if writeRecords fails (best-effort; write errors reported above)
@@ -73,25 +73,25 @@ func (w *csvWriter) Write(ctx context.Context, endpoint string, records []map[st
 	}
 
 	slog.Debug("CSV write complete", "endpoint", endpoint, "file", csvName, "rows", len(records)) // Log after file I/O
-	return nil                                                                                       // Signal success to the caller
+	return nil                                                                                    // Signal success to the caller
 }
 
 // writeRecords writes the header row followed by one data row per record into file.
 // Column order is determined alphabetically from the first record's flattened keys.
 func (w *csvWriter) writeRecords(file *os.File, records []map[string]any) error {
 	writer := csv.NewWriter(file) // Wrap the OS file in an RFC 4180 CSV encoder
-	defer writer.Flush()         // Flush buffered CSV data to the OS file on return
+	defer writer.Flush()          // Flush buffered CSV data to the OS file on return
 
-	first := FlattenRecord(records[0])   // Flatten the first record to derive the column schema
-	headers := collectSortedKeys(first)  // Sort column names for deterministic, diff-friendly output
+	first := FlattenRecord(records[0])  // Flatten the first record to derive the column schema
+	headers := collectSortedKeys(first) // Sort column names for deterministic, diff-friendly output
 
 	if err := writer.Write(headers); err != nil { // Write the header row as the first CSV line
 		return fmt.Errorf("write csv header: %w", err) // Wrap error with context for debugging
 	}
 
 	for _, record := range records { // Write one data row for every record in the slice
-		flat := FlattenRecord(record)      // Flatten nested fields to scalar string values
-		row := buildRow(flat, headers)     // Extract values in the same order as headers
+		flat := FlattenRecord(record)             // Flatten nested fields to scalar string values
+		row := buildRow(flat, headers)            // Extract values in the same order as headers
 		if err := writer.Write(row); err != nil { // Write the row to the CSV encoder buffer
 			return fmt.Errorf("write csv row: %w", err) // Wrap error with context for debugging
 		}
@@ -113,11 +113,11 @@ type sqliteWriter struct {
 
 // newSQLiteWriter opens (or creates) the SQLite database file and verifies connectivity.
 func newSQLiteWriter(dataDir string) (*sqliteWriter, error) {
-	dbPath := filepath.Join(dataDir, "mist_data.db") // Canonical database file path inside data directory
+	dbPath := filepath.Join(dataDir, "mist_data.db")     // Canonical database file path inside data directory
 	slog.Info("Opening SQLite database", "path", dbPath) // Log before opening so failures are traceable
 
 	db, err := sql.Open("sqlite", dbPath) // Open or create the SQLite file using the modernc driver
-	if err != nil {                        // sql.Open may fail if the driver is not registered
+	if err != nil {                       // sql.Open may fail if the driver is not registered
 		return nil, fmt.Errorf("open sqlite db %s: %w", dbPath, err) // Wrap with path context
 	}
 
@@ -134,12 +134,12 @@ func newSQLiteWriter(dataDir string) (*sqliteWriter, error) {
 func (w *sqliteWriter) Write(ctx context.Context, endpoint string, records []map[string]any) error {
 	if len(records) == 0 { // Skip DDL and DML entirely when there is nothing to write
 		slog.Debug("SQLite write skipped: no records", "endpoint", endpoint) // Log the skip
-		return nil                                                            // Empty is not an error
+		return nil                                                           // Empty is not an error
 	}
 	slog.Info("Writing SQLite output", "endpoint", endpoint, "records", len(records)) // Log before any DB work
 
-	first := FlattenRecord(records[0])  // Flatten first record to determine the column schema
-	headers := collectSortedKeys(first) // Sort columns for deterministic DDL and INSERT order
+	first := FlattenRecord(records[0])   // Flatten first record to determine the column schema
+	headers := collectSortedKeys(first)  // Sort columns for deterministic DDL and INSERT order
 	table := sanitizeTableName(endpoint) // Convert endpoint name to a safe SQL identifier
 	strategy := Get(endpoint)            // Look up primary-key strategy for upsert vs insert logic
 
@@ -148,12 +148,12 @@ func (w *sqliteWriter) Write(ctx context.Context, endpoint string, records []map
 	}
 
 	written, err := w.insertRows(ctx, table, headers, records, strategy) // Insert all rows using the strategy
-	if err != nil {                                                        // Any row insert failure aborts the batch
+	if err != nil {                                                      // Any row insert failure aborts the batch
 		return fmt.Errorf("insert rows into %s: %w", table, err) // Wrap with table name for context
 	}
 
 	slog.Debug("SQLite write complete", "endpoint", endpoint, "table", table, "rows", written) // Log after batch insert
-	return nil                                                                                   // Signal success to the caller
+	return nil                                                                                 // Signal success to the caller
 }
 
 // ensureTable runs CREATE TABLE IF NOT EXISTS for table with a TEXT column per entry in cols.
@@ -170,7 +170,7 @@ func (w *sqliteWriter) ensureTable(ctx context.Context, table string, cols []str
 		return fmt.Errorf("create table %q: %w", table, err) // Wrap with table name context
 	}
 	slog.Debug("SQLite table ready", "table", table) // Log after successful DDL
-	return nil                                        // Table exists and is ready for inserts
+	return nil                                       // Table exists and is ready for inserts
 }
 
 // buildColumnDefs returns a slice of `"col" TEXT` strings for use in a CREATE TABLE statement.
@@ -190,8 +190,8 @@ func (w *sqliteWriter) insertRows(ctx context.Context, table string, headers []s
 	written := 0                                          // Track the successful row count for the debug log
 
 	for _, record := range records { // Insert one row per record in the batch
-		flat := FlattenRecord(record)      // Flatten nested fields to scalars before binding
-		args := buildArgs(flat, headers)   // Extract values in header column order for parameter binding
+		flat := FlattenRecord(record)                                        // Flatten nested fields to scalars before binding
+		args := buildArgs(flat, headers)                                     // Extract values in header column order for parameter binding
 		if _, err := w.db.ExecContext(ctx, insertSQL, args...); err != nil { // Execute parameterised INSERT
 			return written, fmt.Errorf("insert row: %w", err) // Return partial count plus error context
 		}
@@ -207,7 +207,7 @@ func (w *sqliteWriter) Close() error {
 		return fmt.Errorf("close sqlite db: %w", err) // Wrap error -- callers should log and report
 	}
 	slog.Debug("SQLite database connection closed") // Log after successful close
-	return nil                                       // Signal clean shutdown to the caller
+	return nil                                      // Signal clean shutdown to the caller
 }
 
 // ── Constructor ──────────────────────────────────────────────────────────────
@@ -229,11 +229,11 @@ func NewWriter(cfg api.Config, dataDir string) (Writer, error) {
 			return nil, fmt.Errorf("create sqlite writer: %w", err) // Wrap for context
 		}
 		slog.Debug("SQLite writer ready", "dataDir", dataDir) // Log after successful writer creation
-		return writer, nil                                     // Return the live SQLite writer
+		return writer, nil                                    // Return the live SQLite writer
 
 	case "csv", "": // CSV backend: one file per Write call (empty string is the default)
 		slog.Debug("CSV writer ready", "dataDir", dataDir) // Log after construction
-		return newCSVWriter(dataDir), nil                   // CSV writer needs no initialisation error
+		return newCSVWriter(dataDir), nil                  // CSV writer needs no initialisation error
 
 	default: // Unknown format string -- fail immediately so the misconfiguration is obvious
 		return nil, fmt.Errorf("unknown output format %q -- supported: csv, sqlite", cfg.OutputFormat)
@@ -258,7 +258,7 @@ func collectSortedKeys(m map[string]any) []string {
 // Missing keys produce an empty string so every row has the same column count as the header.
 func buildRow(flat map[string]any, headers []string) []string {
 	row := make([]string, len(headers)) // Allocate one string slot per column
-	for i, header := range headers {   // Iterate in header order to maintain column alignment
+	for i, header := range headers {    // Iterate in header order to maintain column alignment
 		if v, ok := flat[header]; ok { // Only populate the slot if the key is present
 			row[i] = fmt.Sprintf("%v", v) // Convert any scalar type to its string representation
 		}
@@ -291,15 +291,15 @@ func sanitizeTableName(endpoint string) string {
 // buildInsertSQL constructs an INSERT statement for table with the given column headers,
 // using the conflict resolution clause determined by strategy.
 func buildInsertSQL(table string, headers []string, strategy EndpointStrategy) string {
-	conflict := insertConflictClause(strategy) // Determine OR REPLACE vs OR IGNORE based on PK type
-	cols := quoteColumns(headers)              // Quote each column name to prevent injection via field names
+	conflict := insertConflictClause(strategy)      // Determine OR REPLACE vs OR IGNORE based on PK type
+	cols := quoteColumns(headers)                   // Quote each column name to prevent injection via field names
 	placeholders := buildPlaceholders(len(headers)) // Generate one ? per column for safe parameter binding
 	return fmt.Sprintf(
 		"INSERT %s INTO %q (%s) VALUES (%s)", // table name is double-quoted for safety
 		conflict,
 		table,
-		strings.Join(cols, ", "),          // Join quoted column names with comma-space
-		placeholders,                      // Join ? placeholders with comma-space
+		strings.Join(cols, ", "), // Join quoted column names with comma-space
+		placeholders,             // Join ? placeholders with comma-space
 	)
 }
 

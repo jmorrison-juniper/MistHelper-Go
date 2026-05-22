@@ -4,14 +4,16 @@ package menu
 import (
 	"bufio"   // for bufio.Reader -- SafeInput reads stdin through this
 	"context" // for context.Context -- every handler receives a cancellable context
+	"io"      // for io.Writer -- terminal writer abstraction (os.Stdout local, SSH channel remote)
 	"sort"    // for sort.Slice -- ascending sort by menu number in Sorted()
 
 	"github.com/jmorrison-juniper/misthelper-go/internal/output" // for output.Writer -- passed to every handler
 )
 
 // HandlerFunc is the function signature every menu operation implements.
-// ctx carries cancellation; reader provides stdin; w is the output backend.
-type HandlerFunc func(ctx context.Context, reader *bufio.Reader, w output.Writer) error
+// ctx carries cancellation; reader provides stdin; term is the terminal writer
+// (os.Stdout for local, SSH channel for remote); w is the output backend.
+type HandlerFunc func(ctx context.Context, reader *bufio.Reader, term io.Writer, w output.Writer) error
 
 // Entry is one item in the menu registry.
 type Entry struct {

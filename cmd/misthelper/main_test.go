@@ -50,10 +50,10 @@ func TestMenu0Quit(t *testing.T) {
 	cmd := exec.Command(exe, "run", ".", "--menu", "0") // --menu 0 means: init, skip interactive loop, shut down cleanly
 	cmd.Dir = "."                                       // run from the package directory so relative "data/" paths resolve correctly
 	cmd.Env = append(os.Environ(),                      // start from the real environment to preserve PATH and GOPATH
-		"MIST_API_TOKEN=test",  // stub API token satisfies LoadConfig validation
-		"MIST_ORG_ID=test",     // stub org ID (not a valid UUID but passes the non-empty check)
-		"SSH_PORT=0",           // port 0 lets the OS assign a free port, avoiding bind conflicts in CI
-		"WEB_PORT=0",           // same for the HTTP server
+		"MIST_API_TOKEN=test", // stub API token satisfies LoadConfig validation
+		"MIST_ORG_ID=test",    // stub org ID (not a valid UUID but passes the non-empty check)
+		"SSH_PORT=0",          // port 0 lets the OS assign a free port, avoiding bind conflicts in CI
+		"WEB_PORT=0",          // same for the HTTP server
 	)
 
 	out, err := cmd.CombinedOutput() // capture stdout+stderr; cmd.Run sets err if exit code != 0

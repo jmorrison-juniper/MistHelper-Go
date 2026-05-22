@@ -205,11 +205,11 @@ func (s *Server) processChannelRequests(ch gossh.Channel, requests <-chan *gossh
 
 // runMenuSession wires an io.ReadWriter to the menu Dispatcher and blocks until EOF or context cancellation.
 func (s *Server) runMenuSession(rw io.ReadWriter, sessionID string) {
-	slog.Info("menu session starting", "session", sessionID)       // Log before creating the dispatcher
-	reader := bufio.NewReader(rw)                                  // Wrap the SSH channel in a bufio.Reader for line-at-a-time input
-	dispatcher := menu.NewDispatcher(s.registry, reader, s.writer) // Wire registry and output backend into the dispatcher
-	ctx := context.Background()                                    // No external cancellation for the session -- it ends on EOF
-	if err := dispatcher.Run(ctx); err != nil {                    // Block until the user exits or the session closes
+	slog.Info("menu session starting", "session", sessionID)           // Log before creating the dispatcher
+	reader := bufio.NewReader(rw)                                      // Wrap the SSH channel in a bufio.Reader for line-at-a-time input
+	dispatcher := menu.NewDispatcher(s.registry, reader, rw, s.writer) // Wire registry, SSH channel (term writer), and output backend into the dispatcher
+	ctx := context.Background()                                        // No external cancellation for the session -- it ends on EOF
+	if err := dispatcher.Run(ctx); err != nil {                        // Block until the user exits or the session closes
 		slog.Error("menu session error", "session", sessionID, "error", err) // Log errors so operators can diagnose session failures
 	}
 	slog.Debug("menu session ended", "session", sessionID) // Log after the session completes

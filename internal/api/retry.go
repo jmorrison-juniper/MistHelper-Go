@@ -20,8 +20,8 @@ type RetryConfig struct {
 // DefaultRetryConfig is the standard retry policy used for all Mist API calls.
 // 3 attempts with 1s base delay capped at 30s matches the Python reference implementation.
 var DefaultRetryConfig = RetryConfig{
-	MaxAttempts: 3,              // Attempt the call up to 3 times total
-	BaseDelay:   1 * time.Second, // Start with a 1-second pause before retry 1
+	MaxAttempts: 3,                // Attempt the call up to 3 times total
+	BaseDelay:   1 * time.Second,  // Start with a 1-second pause before retry 1
 	MaxDelay:    30 * time.Second, // Never wait longer than 30 seconds between attempts
 }
 
@@ -45,13 +45,13 @@ func RetryableError(cause error) error {
 // It stops early on context cancellation or when op returns a non-retryable error.
 // Retry sleep durations are: BaseDelay * 2^attempt + jitter (capped at MaxDelay).
 func withRetry(ctx context.Context, op func() error, cfg RetryConfig) error {
-	var lastErr error // Track the most recent error for the final return
+	var lastErr error                                        // Track the most recent error for the final return
 	for attempt := 0; attempt < cfg.MaxAttempts; attempt++ { // Iterate up to MaxAttempts times
 		if err := ctx.Err(); err != nil { // Honour context cancellation before each attempt
 			return fmt.Errorf("retry cancelled: %w", err) // Propagate cancellation reason
 		}
 
-		lastErr = op() // Execute the operation and capture any error
+		lastErr = op()      // Execute the operation and capture any error
 		if lastErr == nil { // Success -- no retry needed
 			return nil
 		}
@@ -66,7 +66,7 @@ func withRetry(ctx context.Context, op func() error, cfg RetryConfig) error {
 
 		sleep := backoffDuration(attempt, cfg) // Compute sleep with exponential backoff + jitter
 		slog.Info("API call failed, retrying", // Log retry event at info level for operator visibility
-			"attempt", attempt+1,          // 1-based attempt number for readability
+			"attempt", attempt+1, // 1-based attempt number for readability
 			"max_attempts", cfg.MaxAttempts, // Total attempts so context is clear
 			"sleep_ms", sleep.Milliseconds(), // Sleep duration to help diagnose throttling
 		)
@@ -89,6 +89,9 @@ func backoffDuration(attempt int, cfg RetryConfig) time.Duration {
 	if sleep > cfg.MaxDelay {          // Cap at MaxDelay to prevent very long waits
 		sleep = cfg.MaxDelay
 	}
-	jitterNs := rand.Int63n(int64(cfg.BaseDelay)) // #nosec G404 -- math/rand jitter for retry backoff is not security-sensitive; it prevents thundering herd, not cryptographic operations
-	return sleep + time.Duration(jitterNs)         // Add jitter to spread concurrent retries
+	jitterNs := int64(0)                          // Default zero jitter when BaseDelay is zero
+	if cfg.BaseDelay > 0 {                        // Guard against rand.Int63n(0) which panics
+		jitterNs = rand.Int63n(int64(cfg.BaseDelay)) // #nosec G404 -- math/rand jitter for retry backoff is not security-sensitive; it prevents thundering herd, not cryptographic operations
+	}
+	return sleep + time.Duration(jitterNs) // Add jitter to spread concurrent retries
 }

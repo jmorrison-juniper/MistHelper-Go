@@ -28,22 +28,22 @@ func (s *stubWriter) Close() error {
 
 // TestDispatch_ValidOption verifies that Dispatch invokes the registered handler exactly once.
 func TestDispatch_ValidOption(t *testing.T) {
-	t.Parallel()                         // Run this test concurrently with others
-	reg := NewRegistry()                 // Create a fresh registry for this test
-	called := 0                          // Track how many times the stub handler is invoked
-	reg.Register(Entry{                  // Register a non-destructive entry at number 11
-		Number:   11,                    // Menu number to exercise
-		Title:    "Test Operation",      // Human-readable title
-		Category: "Test",                // Category grouping (irrelevant to this test)
-		Handler: func(ctx context.Context, r *bufio.Reader, w output.Writer) error {
-			called++ // Increment counter to verify the handler was invoked
+	t.Parallel()         // Run this test concurrently with others
+	reg := NewRegistry() // Create a fresh registry for this test
+	called := 0          // Track how many times the stub handler is invoked
+	reg.Register(Entry{  // Register a non-destructive entry at number 11
+		Number:   11,               // Menu number to exercise
+		Title:    "Test Operation", // Human-readable title
+		Category: "Test",           // Category grouping (irrelevant to this test)
+		Handler: func(ctx context.Context, r *bufio.Reader, term io.Writer, w output.Writer) error {
+			called++   // Increment counter to verify the handler was invoked
 			return nil // Return success to the dispatcher
 		},
 	})
-	reader := bufio.NewReader(bytes.NewBufferString("")) // Empty stdin -- Dispatch doesn't need stdin
-	d := NewDispatcher(reg, reader, &stubWriter{})        // Build dispatcher with the test registry
-	err := d.Dispatch(context.Background(), 11)           // Invoke entry 11 directly
-	if err != nil {                                       // Dispatch must return nil for a valid option
+	reader := bufio.NewReader(bytes.NewBufferString(""))       // Empty stdin -- Dispatch doesn't need stdin
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{}) // Build dispatcher with the test registry (discard terminal output)
+	err := d.Dispatch(context.Background(), 11)                // Invoke entry 11 directly
+	if err != nil {                                            // Dispatch must return nil for a valid option
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if called != 1 { // Handler must be called exactly once
@@ -53,35 +53,35 @@ func TestDispatch_ValidOption(t *testing.T) {
 
 // TestDispatch_UnknownOption verifies that Dispatch returns an error for an unregistered number.
 func TestDispatch_UnknownOption(t *testing.T) {
-	t.Parallel()                                           // Safe to run concurrently
-	reg := NewRegistry()                                   // Empty registry -- no entries registered
-	reader := bufio.NewReader(bytes.NewBufferString(""))   // Empty stdin
-	d := NewDispatcher(reg, reader, &stubWriter{})          // Build dispatcher
-	err := d.Dispatch(context.Background(), 999)            // 999 is not registered
-	if err == nil {                                        // Must return an error for unknown numbers
+	t.Parallel()                                               // Safe to run concurrently
+	reg := NewRegistry()                                       // Empty registry -- no entries registered
+	reader := bufio.NewReader(bytes.NewBufferString(""))       // Empty stdin
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{}) // Build dispatcher (discard terminal output)
+	err := d.Dispatch(context.Background(), 999)               // 999 is not registered
+	if err == nil {                                            // Must return an error for unknown numbers
 		t.Fatal("expected error for unknown option 999, got nil")
 	}
 }
 
 // TestDispatch_DestructiveRequiresConfirm verifies that a destructive entry runs only after "CONFIRM".
 func TestDispatch_DestructiveRequiresConfirm(t *testing.T) {
-	t.Parallel()                            // Safe to run concurrently
-	reg := NewRegistry()                    // Fresh registry for this test
-	called := 0                             // Track handler invocations
-	reg.Register(Entry{                     // Register a destructive entry
-		Number:      90,                    // Destructive operations are 90-100
-		Title:       "Firmware Upgrade",    // Human-readable title for the confirmation warning
-		Category:    "Destructive",         // Category grouping
-		Destructive: true,                  // Gate requires "CONFIRM" before handler runs
-		Handler: func(ctx context.Context, r *bufio.Reader, w output.Writer) error {
-			called++ // Increment to verify the handler actually ran
+	t.Parallel()         // Safe to run concurrently
+	reg := NewRegistry() // Fresh registry for this test
+	called := 0          // Track handler invocations
+	reg.Register(Entry{  // Register a destructive entry
+		Number:      90,                 // Destructive operations are 90-100
+		Title:       "Firmware Upgrade", // Human-readable title for the confirmation warning
+		Category:    "Destructive",      // Category grouping
+		Destructive: true,               // Gate requires "CONFIRM" before handler runs
+		Handler: func(ctx context.Context, r *bufio.Reader, term io.Writer, w output.Writer) error {
+			called++   // Increment to verify the handler actually ran
 			return nil // Return success
 		},
 	})
 	// Feed "CONFIRM\n" as stdin so confirmDestructive accepts it.
 	reader := bufio.NewReader(bytes.NewBufferString("CONFIRM\n")) // Exact match required
-	d := NewDispatcher(reg, reader, &stubWriter{})                 // Build dispatcher
-	err := d.Dispatch(context.Background(), 90)                    // Invoke the destructive entry
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{})    // Build dispatcher (discard terminal output)
+	err := d.Dispatch(context.Background(), 90)                   // Invoke the destructive entry
 	if err != nil {                                               // Must return nil on successful confirm+run
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -92,10 +92,10 @@ func TestDispatch_DestructiveRequiresConfirm(t *testing.T) {
 
 // TestSafeInput_EOF verifies that SafeInput returns io.EOF without panicking on an empty reader.
 func TestSafeInput_EOF(t *testing.T) {
-	t.Parallel()                                                     // Safe to run concurrently
-	reader := bufio.NewReader(bytes.NewBufferString(""))             // Empty buffer -- first read returns EOF
-	result, err := SafeInput(reader, "prompt> ", "test-context")    // Call under test
-	if !errors.Is(err, io.EOF) {                                     // Must return io.EOF, not nil or another error
+	t.Parallel()                                                             // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString(""))                     // Empty buffer -- first read returns EOF
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context") // Call under test (discard prompt output)
+	if !errors.Is(err, io.EOF) {                                             // Must return io.EOF, not nil or another error
 		t.Errorf("expected io.EOF, got %v", err)
 	}
 	if result != "" { // Must return empty string on EOF
@@ -105,13 +105,13 @@ func TestSafeInput_EOF(t *testing.T) {
 
 // TestRegistry_Sorted verifies that Sorted returns entries in ascending Number order.
 func TestRegistry_Sorted(t *testing.T) {
-	t.Parallel()               // Safe to run concurrently
-	reg := NewRegistry()       // Fresh registry
+	t.Parallel()                                                      // Safe to run concurrently
+	reg := NewRegistry()                                              // Fresh registry
 	reg.Register(Entry{Number: 30, Title: "Third", Category: "Cat"})  // Register out of order
 	reg.Register(Entry{Number: 10, Title: "First", Category: "Cat"})  // Lowest number
 	reg.Register(Entry{Number: 20, Title: "Second", Category: "Cat"}) // Middle number
-	sorted := reg.Sorted()     // Call under test
-	if len(sorted) != 3 {      // Must contain all three entries
+	sorted := reg.Sorted()                                            // Call under test
+	if len(sorted) != 3 {                                             // Must contain all three entries
 		t.Fatalf("expected 3 entries, got %d", len(sorted))
 	}
 	if sorted[0].Number != 10 || sorted[1].Number != 20 || sorted[2].Number != 30 { // Must be ascending

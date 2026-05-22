@@ -88,14 +88,14 @@ func TestNewWriter_InvalidFormat(t *testing.T) {
 // verifyCSVLines reads the CSV file at path and fails the test if the number
 // of non-empty lines does not equal want.
 func verifyCSVLines(t *testing.T, path string, want int) {
-	t.Helper()                        // Mark as helper so failure lines point to the caller
-	data, err := os.ReadFile(path)    // Read the entire CSV file into memory
-	if err != nil {                   // File must exist -- if not the write step failed silently
+	t.Helper()                     // Mark as helper so failure lines point to the caller
+	data, err := os.ReadFile(path) // Read the entire CSV file into memory
+	if err != nil {                // File must exist -- if not the write step failed silently
 		t.Fatalf("read csv %s: %v", path, err) // Report the failing path and error
 	}
-	content := string(data)                      // Convert bytes to string for line counting
-	got := strings.Count(content, "\n")          // Count newline characters as a proxy for row count
-	if got != want {                             // Row count must match the expected value
+	content := string(data)             // Convert bytes to string for line counting
+	got := strings.Count(content, "\n") // Count newline characters as a proxy for row count
+	if got != want {                    // Row count must match the expected value
 		t.Errorf("expected %d lines in %s, got %d\n%s", want, path, got, content) // Show file content for debugging
 	}
 }
@@ -103,9 +103,9 @@ func verifyCSVLines(t *testing.T, path string, want int) {
 // verifyDBRows opens the SQLite database at dbPath and fails the test if
 // SELECT COUNT(*) FROM table does not return want.
 func verifyDBRows(t *testing.T, dbPath, table string, want int) {
-	t.Helper()                                   // Mark as helper so failure lines point to the caller
-	db, err := sql.Open("sqlite", dbPath)        // Open the database with the modernc driver
-	if err != nil {                              // Must succeed -- file was created by the writer
+	t.Helper()                            // Mark as helper so failure lines point to the caller
+	db, err := sql.Open("sqlite", dbPath) // Open the database with the modernc driver
+	if err != nil {                       // Must succeed -- file was created by the writer
 		t.Fatalf("open db %s: %v", dbPath, err) // Report the failing path and error
 	}
 	defer func() { _ = db.Close() }() // Release the connection after the assertion (best-effort; test cleanup)

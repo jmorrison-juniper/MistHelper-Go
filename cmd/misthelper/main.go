@@ -7,7 +7,8 @@ import (
 	"bufio"     // bufio.NewReader for stdin buffering in the menu dispatcher
 	"context"   // context.Background and signal-aware context for lifecycle management
 	"flag"      // CLI flag parsing for --menu, --format, --version
-	"fmt"       // fmt.Errorf for error wrapping with context strings
+	"fmt"       // fmt.Errorf and fmt.Fprintf for error wrapping and user-facing output
+	"io"        // io.Writer -- terminal writer abstraction for handler output routing
 	"log/slog"  // structured logging (Go 1.21+ standard library)
 	"os"        // os.Exit, os.Stdin, os.MkdirAll for process control and I/O
 	"os/signal" // signal.NotifyContext for SIGINT/SIGTERM graceful shutdown
@@ -211,9 +212,9 @@ func initPackages(formatFlag string) (appPackages, error) {
 	if err != nil {
 		return appPackages{}, fmt.Errorf("create output writer: %w", err) // fails if format is invalid or data/ is unwritable
 	}
-	registry := menu.NewRegistry()                                                // empty registry; stubs are registered in main after initPackages
-	dispatcher := menu.NewDispatcher(registry, bufio.NewReader(os.Stdin), writer) // wire stdin into the menu loop
-	signer, err := mssh.LoadOrCreateHostKey("data")                               // generate RSA host key on first boot; reload on subsequent starts
+	registry := menu.NewRegistry()                                                           // empty registry; stubs are registered in main after initPackages
+	dispatcher := menu.NewDispatcher(registry, bufio.NewReader(os.Stdin), os.Stdout, writer) // wire stdin and stdout into the menu loop
+	signer, err := mssh.LoadOrCreateHostKey("data")                                          // generate RSA host key on first boot; reload on subsequent starts
 	if err != nil {
 		return appPackages{}, fmt.Errorf("load SSH host key: %w", err) // fails if data/ is unwritable or key is corrupted
 	}
@@ -241,10 +242,10 @@ func registerStubs(r *menu.Registry) {
 // makeStubHandler returns a HandlerFunc that prints "not yet implemented" for operation n.
 // All stubs return nil so the interactive menu loop continues after showing the message.
 func makeStubHandler(n int, name string) menu.HandlerFunc {
-	return func(ctx context.Context, reader *bufio.Reader, w output.Writer) error { // closure captures n and name from the outer scope
-		slog.Info("stub: operation not yet implemented", "operation", n, "name", name)                           // log so audit trail shows which stub was invoked
-		fmt.Printf("  Operation %d (%s) is not yet implemented.\n  Port from MistHelper.py first.\n\n", n, name) // clear user-facing message directing the porter to the Python reference
-		return nil                                                                                               // nil keeps the interactive menu loop running after this stub exits
+	return func(ctx context.Context, reader *bufio.Reader, term io.Writer, w output.Writer) error { // closure captures n and name from the outer scope
+		slog.Info("stub: operation not yet implemented", "operation", n, "name", name)                                         // log so audit trail shows which stub was invoked
+		_, _ = fmt.Fprintf(term, "  Operation %d (%s) is not yet implemented.\n  Port from MistHelper.py first.\n\n", n, name) // write to terminal writer (os.Stdout local, SSH channel remote)
+		return nil                                                                                                             // nil keeps the interactive menu loop running after this stub exits
 	}
 }
 
