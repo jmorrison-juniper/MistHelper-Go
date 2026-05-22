@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "go: build",
+      "type": "shell",
+      "command": "go build ./...",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": "$go"
+    },
+    {
+      "label": "go: vet",
+      "type": "shell",
+      "command": "go vet ./...",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": "$go"
+    },
+    {
+      "label": "go: test",
+      "type": "shell",
+      "command": "go test ./... -cover -v",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": "$go"
+    },
+    {
+      "label": "go: lint (golangci-lint)",
+      "type": "shell",
+      "command": "& (Get-ChildItem \"$env:LOCALAPPDATA\\Microsoft\\WinGet\\Packages\" -Recurse -Filter golangci-lint.exe | Select-Object -First 1).FullName run ./...",
+      "options": { "cwd": "${workspaceFolder}", "shell": { "executable": "pwsh", "args": ["-NoProfile", "-Command"] } },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Quality Gates: ALL",
+      "dependsOn": ["go: build", "go: vet", "go: test", "go: lint (golangci-lint)"],
+      "dependsOrder": "sequence",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}

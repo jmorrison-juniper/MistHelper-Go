@@ -618,4 +618,9 @@ Not every task needs full ceremony. Use this decision tree:
 
 ---
 
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at specs/001-foundational-scaffolding/plan.md
+<!-- SPECKIT END -->
 
