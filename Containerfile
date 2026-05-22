@@ -5,7 +5,7 @@
 # ============================================================
 
 # ── Build Stage ──────────────────────────────────────────────
-FROM docker.io/library/golang:1.24-alpine AS builder
+FROM docker.io/library/golang:1.25-alpine AS builder
 
 WORKDIR /build
 
@@ -13,8 +13,9 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code (internal/ added as features are ported)
+# Copy source code (cmd/ entrypoint + internal/ packages)
 COPY cmd/ cmd/
+COPY internal/ internal/
 
 # Build static binary (CGO disabled for scratch compatibility)
 RUN CGO_ENABLED=0 GOOS=linux go build \
