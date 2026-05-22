@@ -1,0 +1,17 @@
+[Unit]
+Description=MistHelper-Go Network Operations Tool
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/misthelper-go/misthelper-go
+WorkingDirectory=/opt/misthelper-go
+EnvironmentFile=/opt/misthelper-go/.env
+User=misthelper
+Group=misthelper
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

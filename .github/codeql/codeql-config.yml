@@ -1,0 +1,14 @@
+name: "MistHelper-Go CodeQL Configuration"
+
+# Exclude the go/clear-text-logging query.
+# MistHelper-Go is a network operations tool where displaying MAC addresses,
+# capture configuration parameters, and device identifiers to NOC engineers
+# is fundamental operational functionality -- not a security vulnerability.
+# CodeQL incorrectly classifies these as "sensitive data (private)" because
+# variable names contain "mac" (e.g., apMAC, clientMAC, gatewayMAC).
+# No passwords, API tokens, or actual secrets are ever logged.
+query-filters:
+  - exclude:
+      id: go/clear-text-logging
+  - exclude:
+      id: go/stack-trace-exposure

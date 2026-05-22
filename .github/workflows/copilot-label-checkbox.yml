@@ -1,0 +1,39 @@
+# Copilot Label from Issue Checkbox
+# When a new issue is created with the "Assign to Copilot Coding Agent" checkbox
+# checked, this workflow automatically adds the 'copilot' label -- which in turn
+# triggers copilot-auto-assign.yml to assign the agent.
+
+name: Copilot Label from Checkbox
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  check-copilot-checkbox:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add copilot label if checkbox is checked
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            const pattern = /\[x\]\s*Assign to Copilot Coding Agent/i;
+
+            if (pattern.test(body)) {
+              console.log('Copilot checkbox detected -- adding label');
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['copilot']
+              });
+            } else {
+              console.log('Copilot checkbox not checked -- skipping');
+            }

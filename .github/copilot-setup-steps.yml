@@ -1,0 +1,23 @@
+# Copilot Coding Agent -- Environment Setup
+# This file configures the development environment that the Copilot Coding Agent
+# uses when implementing issues assigned to it. It runs as a GitHub Actions workflow
+# step before the agent starts coding.
+#
+# Docs: https://docs.github.com/en/copilot/customizing-copilot/customizing-the-development-environment-for-copilot-coding-agent
+
+steps:
+  - name: Set up Go
+    uses: actions/setup-go@v5
+    with:
+      go-version: "1.21"
+
+  - name: Install Go tools
+    run: |
+      go install github.com/securego/gosec/v2/cmd/gosec@latest
+      go install golang.org/x/vuln/cmd/govulncheck@latest
+
+  - name: Verify environment
+    run: |
+      go version
+      go build ./...
+      echo "Environment ready for Copilot Coding Agent"

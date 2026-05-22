@@ -1,0 +1,72 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in MistHelper-Go.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill out the sections below.
+
+        **Note**: MistHelper-Go is provided AS-IS with no warranty. Bug reports
+        are addressed on a best-effort basis.
+
+  - type: input
+    id: version
+    attributes:
+      label: MistHelper-Go Version
+      description: "Run `misthelper-go --version` or `go run ./cmd/misthelper --version`, or check the changelog."
+      placeholder: "e.g. 25.04.08.12.00"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Local (Windows)
+        - Local (Linux/Mac)
+        - Container (Podman/Docker)
+        - SSH session (container)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: "Describe the bug. What did you expect vs what actually happened?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: "Menu number, inputs, and sequence of actions."
+      placeholder: |
+        1. Run misthelper-go
+        2. Select menu option 13
+        3. Choose site "HQ"
+        4. Error appears...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: "Paste any error messages or log output (redact tokens/passwords)."
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: copilot-assign
+    attributes:
+      label: AI Implementation
+      description: Check to have the Copilot Coding Agent automatically fix this bug.
+      options:
+        - label: Assign to Copilot Coding Agent (adds 'copilot' label)
+          required: false

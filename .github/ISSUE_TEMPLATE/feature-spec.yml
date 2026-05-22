@@ -1,0 +1,136 @@
+name: Feature Spec
+description: Structured feature specification for MistHelper-Go development
+title: "[Spec]: "
+labels: ["feature-spec"]
+body:
+  - type: textarea
+    id: problem-goal
+    attributes:
+      label: Problem / Goal
+      description: What problem does this feature solve? What is the desired outcome?
+      placeholder: Describe the problem or goal clearly. Include who is affected and why this matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: interfaces-behavior
+    attributes:
+      label: Interfaces & Behavior
+      description: How will users interact with this feature? What inputs, outputs, and behaviors are expected?
+      placeholder: |
+        Describe CLI flags, menu options, API endpoints, or web UI interactions.
+        Include expected input formats and output formats (CSV, SQLite, console).
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints-performance
+    attributes:
+      label: Constraints / Performance
+      description: Any performance requirements, resource limits, or technical constraints?
+      placeholder: |
+        Examples: Must complete within 60 seconds for 1000 devices.
+        Must work behind Zscaler proxy. Must not exceed 100MB memory.
+    validations:
+      required: false
+
+  - type: textarea
+    id: security-secrets
+    attributes:
+      label: Security & Secrets
+      description: Does this feature handle sensitive data, credentials, or external access?
+      placeholder: |
+        List any API tokens, passwords, or PII involved.
+        Describe how secrets should be loaded (e.g., .env, environment variables).
+        Note any input validation or sanitization requirements.
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-plan
+    attributes:
+      label: Test Plan
+      description: |
+        How should this feature be tested? Include unit, integration, and edge case tests.
+        For table-driven tests, define test cases as scenarios:
+        - "Given valid input X, function returns Y"
+        - "Given invalid input, function returns wrapped error"
+      placeholder: |
+        Unit tests: TestFeatureHappyPath, TestFeatureEdgeCase
+        Integration: test with live API (optional, behind build tag)
+        Table-driven: cover valid inputs, invalid inputs, boundary conditions
+    validations:
+      required: true
+
+  - type: textarea
+    id: migration-compatibility
+    attributes:
+      label: Migration / Compatibility
+      description: Does this feature affect existing data, configs, or workflows?
+      placeholder: |
+        Breaking changes, database migrations, config file changes,
+        backward compatibility requirements.
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What must be true for this feature to be considered complete?
+      placeholder: |
+        - [ ] Given X, when Y, then Z
+        - [ ] All unit tests pass
+        - [ ] go vet passes clean
+        - [ ] golangci-lint passes clean
+        - [ ] No new gosec findings
+        - [ ] Documentation updated
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-notes
+    attributes:
+      label: Implementation Notes
+      description: Any technical context, prior art, or suggested approaches?
+      placeholder: |
+        Relevant existing code, packages to use, patterns to follow.
+        References to agents.md or copilot-instructions.md conventions.
+    validations:
+      required: false
+
+  - type: textarea
+    id: ui-behavior-testing
+    attributes:
+      label: UI Behavior & Automated Testing Expectations
+      description: |
+        For features involving the web UI (port 8055).
+        The AI agent uses VS Code Browser Agent Tools to autonomously open, interact with, and test these pages.
+        See agents.md and copilot-instructions.md for the full capability reference.
+      placeholder: |
+        1. Target URL(s): e.g., http://localhost:8055/, /dashboard, /jobs
+        2. Critical user journeys:
+           - Click "Start Workflow" button -> verify job row appears in table
+           - Fill site filter form -> submit -> verify filtered results
+           - Navigate to settings -> toggle feature flag -> verify saved state
+        3. Assertions:
+           - Page title contains "MistHelper-Go"
+           - Table rows update after API call completes
+           - Error banner appears on invalid input
+        4. Stability contracts (data-testid attributes):
+           - data-testid="workflow-start-btn"
+           - data-testid="site-filter-input"
+           - data-testid="job-results-table"
+        5. Artifacts: screenshots on failure, Playwright traces
+        6. Non-goals: flows not covered by this feature
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: copilot-assign
+    attributes:
+      label: AI Implementation
+      description: Check to have the Copilot Coding Agent automatically implement this feature.
+      options:
+        - label: Assign to Copilot Coding Agent (adds 'copilot' label)
+          required: false

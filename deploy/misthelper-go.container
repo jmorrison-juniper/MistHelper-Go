@@ -1,0 +1,13 @@
+[Container]
+Image=ghcr.io/jmorrison-juniper/misthelper-go:latest
+PublishPort=2200:2200
+PublishPort=8055:8055
+Volume=./data:/app/data:rw
+EnvironmentFile=./.env
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
