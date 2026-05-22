@@ -4,22 +4,23 @@
 package main
 
 import (
-	"bufio"    // bufio.NewReader for stdin buffering in the menu dispatcher
-	"context"  // context.Background and signal-aware context for lifecycle management
-	"flag"     // CLI flag parsing for --menu, --format, --version
-	"fmt"      // fmt.Errorf for error wrapping with context strings
-	"log/slog" // structured logging (Go 1.21+ standard library)
-	"os"       // os.Exit, os.Stdin, os.MkdirAll for process control and I/O
+	"bufio"     // bufio.NewReader for stdin buffering in the menu dispatcher
+	"context"   // context.Background and signal-aware context for lifecycle management
+	"flag"      // CLI flag parsing for --menu, --format, --version
+	"fmt"       // fmt.Errorf for error wrapping with context strings
+	"log/slog"  // structured logging (Go 1.21+ standard library)
+	"os"        // os.Exit, os.Stdin, os.MkdirAll for process control and I/O
 	"os/signal" // signal.NotifyContext for SIGINT/SIGTERM graceful shutdown
 	"syscall"   // syscall.SIGTERM for OS-level termination signal
 	"time"      // time.Second for shutdown timeout constants
 
-	"github.com/joho/godotenv"                                      // .env file loader — optional, container injects vars directly
-	"github.com/jmorrison-juniper/misthelper-go/internal/api"       // Mist API client and configuration
-	"github.com/jmorrison-juniper/misthelper-go/internal/menu"      // TUI menu registry and dispatcher
-	"github.com/jmorrison-juniper/misthelper-go/internal/output"    // CSV/SQLite output writer
-	mssh "github.com/jmorrison-juniper/misthelper-go/internal/ssh"  // SSH server (aliased to avoid name clash)
-	"github.com/jmorrison-juniper/misthelper-go/internal/web"       // HTTP status/health server
+	"github.com/jmorrison-juniper/misthelper-go/internal/api"      // Mist API client and configuration
+	"github.com/jmorrison-juniper/misthelper-go/internal/menu"     // TUI menu registry and dispatcher
+	"github.com/jmorrison-juniper/misthelper-go/internal/output"   // CSV/SQLite output writer
+	mssh "github.com/jmorrison-juniper/misthelper-go/internal/ssh" // SSH server (aliased to avoid name clash)
+	"github.com/jmorrison-juniper/misthelper-go/internal/web"      // HTTP status/health server
+	"github.com/joho/godotenv"                                     // .env file loader — optional, container injects vars directly
+	"golang.org/x/term"                                            // term.IsTerminal to detect container/daemon mode (no stdin)
 )
 
 // version is the application version string in CHANGELOG YY.MM.DD.HH.MM (UTC) format.
@@ -158,7 +159,7 @@ func main() {
 	showVersion := flag.Bool("version", false, "Print version and exit")                                   // --version prints the build version string
 	flag.Parse()                                                                                           // parse before any side effects that read flags
 
-	if *showVersion {                                            // handle --version before loading credentials — no .env needed
+	if *showVersion { // handle --version before loading credentials — no .env needed
 		slog.Info("MistHelper-Go", "version", version) // emit structured version log; slog writes to stderr by default
 		os.Exit(0)                                     // clean exit: container health checks can call --version safely
 	}
@@ -177,13 +178,13 @@ func main() {
 		}
 	}()
 
-	registerStubs(pkgs.registry)  // populate registry with placeholder handlers for all 89 operations
-	startServers(ctx, pkgs)       // start SSH (port 2200) and web (port 8055) in background goroutines
+	registerStubs(pkgs.registry) // populate registry with placeholder handlers for all 89 operations
+	startServers(ctx, pkgs)      // start SSH (port 2200) and web (port 8055) in background goroutines
 
 	if err := runOrDispatch(ctx, pkgs.dispatcher, *menuFlag); err != nil { // run interactive menu or direct dispatch
-		slog.Error("menu exited with error", "error", err)               // log abnormal exits for operator visibility
-		shutdown(pkgs)                                                    // attempt graceful shutdown before dying
-		os.Exit(1)                                                        // non-zero so container orchestration knows something went wrong
+		slog.Error("menu exited with error", "error", err) // log abnormal exits for operator visibility
+		shutdown(pkgs)                                     // attempt graceful shutdown before dying
+		os.Exit(1)                                         // non-zero so container orchestration knows something went wrong
 	}
 
 	shutdown(pkgs) // graceful shutdown on clean exit: SSH drain (30 s) → web (5 s) → done
@@ -192,10 +193,10 @@ func main() {
 // initPackages loads the .env file, validates configuration, and constructs all five packages.
 // formatFlag is the --format CLI value (empty string means use env var or default "csv").
 func initPackages(formatFlag string) (appPackages, error) {
-	if err := os.MkdirAll("data", 0750); err != nil {                                     // ensure data/ exists before any file writes (host key, CSV, SQLite)
-		return appPackages{}, fmt.Errorf("create data directory: %w", err)              // fail early if the filesystem is read-only
+	if err := os.MkdirAll("data", 0750); err != nil { // ensure data/ exists before any file writes (host key, CSV, SQLite)
+		return appPackages{}, fmt.Errorf("create data directory: %w", err) // fail early if the filesystem is read-only
 	}
-	if err := godotenv.Load(); err != nil {                                               // .env is optional when running in a container with injected env vars
+	if err := godotenv.Load(); err != nil { // .env is optional when running in a container with injected env vars
 		slog.Debug("no .env file found, relying on environment variables", "error", err) // not fatal; note for debugging misconfigured deployments
 	}
 	cfg, err := api.LoadConfig(formatFlag) // validate required env vars (MIST_API_TOKEN, MIST_ORG_ID)
@@ -217,7 +218,7 @@ func initPackages(formatFlag string) (appPackages, error) {
 		return appPackages{}, fmt.Errorf("load SSH host key: %w", err) // fails if data/ is unwritable or key is corrupted
 	}
 	sshSrv := mssh.NewServer(cfg, signer, registry, writer) // SSH server uses same registry as interactive menu
-	webSrv := web.NewServer(cfg)                             // HTTP server configured but not yet listening
+	webSrv := web.NewServer(cfg)                            // HTTP server configured but not yet listening
 	slog.Info("packages initialised", "format", cfg.OutputFormat, "ssh_port", cfg.SSHPort, "web_port", cfg.WebPort)
 	return appPackages{cfg: cfg, client: client, writer: writer, registry: registry, dispatcher: dispatcher, sshServer: sshSrv, webServer: webSrv}, nil
 }
@@ -226,8 +227,8 @@ func initPackages(formatFlag string) (appPackages, error) {
 // Each stub logs the invocation and prints a user-facing "not yet implemented" message.
 func registerStubs(r *menu.Registry) {
 	slog.Info("registering stub menu handlers", "count", len(stubOps)) // log count so we can confirm all 89 are loaded
-	for _, op := range stubOps {                                        // range over the package-level stub table
-		r.Register(menu.Entry{                                         // register each operation in the shared registry
+	for _, op := range stubOps {                                       // range over the package-level stub table
+		r.Register(menu.Entry{ // register each operation in the shared registry
 			Number:   op.n,                           // integer option number the user types at the menu prompt
 			Title:    op.name,                        // human-readable name shown in the menu display
 			Category: op.cat,                         // category header used to group related operations visually
@@ -241,9 +242,9 @@ func registerStubs(r *menu.Registry) {
 // All stubs return nil so the interactive menu loop continues after showing the message.
 func makeStubHandler(n int, name string) menu.HandlerFunc {
 	return func(ctx context.Context, reader *bufio.Reader, w output.Writer) error { // closure captures n and name from the outer scope
-		slog.Info("stub: operation not yet implemented", "operation", n, "name", name) // log so audit trail shows which stub was invoked
+		slog.Info("stub: operation not yet implemented", "operation", n, "name", name)                           // log so audit trail shows which stub was invoked
 		fmt.Printf("  Operation %d (%s) is not yet implemented.\n  Port from MistHelper.py first.\n\n", n, name) // clear user-facing message directing the porter to the Python reference
-		return nil // nil keeps the interactive menu loop running after this stub exits
+		return nil                                                                                               // nil keeps the interactive menu loop running after this stub exits
 	}
 }
 
@@ -267,8 +268,15 @@ func startServers(ctx context.Context, pkgs appPackages) {
 
 // runOrDispatch runs the interactive menu (menuNum < 0), exits cleanly (menuNum == 0),
 // or dispatches a single operation by number (menuNum > 0) for automation.
+// When stdin is not a terminal (e.g. container -d mode), it blocks on signals instead of
+// trying to read stdin, keeping the SSH and web servers alive.
 func runOrDispatch(ctx context.Context, d *menu.Dispatcher, menuNum int) error {
-	if menuNum < 0 { // default: no --menu flag given, enter the interactive loop
+	if menuNum < 0 { // default: no --menu flag given
+		if !term.IsTerminal(int(os.Stdin.Fd())) { // detached container: no stdin, skip interactive menu
+			slog.Info("no interactive terminal detected, running as server (SSH + web only)") // inform operators this is headless mode
+			<-ctx.Done()                                                                      // block until SIGTERM/SIGINT; SSH and web servers run in background
+			return nil                                                                        // clean exit on signal; shutdown() follows in main
+		}
 		slog.Info("starting interactive menu") // log so the operator knows which mode is active
 		return d.Run(ctx)                      // block in interactive loop until EOF, option 0, or context cancel
 	}
@@ -283,17 +291,17 @@ func runOrDispatch(ctx context.Context, d *menu.Dispatcher, menuNum int) error {
 // shutdown drains active SSH sessions (30 s max) then stops the HTTP server (5 s max).
 // Called on both clean and error exit paths to ensure ports are always released.
 func shutdown(pkgs appPackages) {
-	slog.Info("beginning graceful shutdown sequence")                                                    // log entry so operators know shutdown is in progress
-	sshCtx, sshCancel := context.WithTimeout(context.Background(), 30*time.Second)                      // 30 s for active SSH sessions to finish their current operation
-	defer sshCancel()                                                                                    // release timeout resources even if Shutdown returns early
-	if err := pkgs.sshServer.Shutdown(sshCtx); err != nil {                                            // wait for active SSH sessions to complete
-		slog.Error("SSH server shutdown error", "error", err)                                          // log but continue to web shutdown
+	slog.Info("beginning graceful shutdown sequence")                              // log entry so operators know shutdown is in progress
+	sshCtx, sshCancel := context.WithTimeout(context.Background(), 30*time.Second) // 30 s for active SSH sessions to finish their current operation
+	defer sshCancel()                                                              // release timeout resources even if Shutdown returns early
+	if err := pkgs.sshServer.Shutdown(sshCtx); err != nil {                        // wait for active SSH sessions to complete
+		slog.Error("SSH server shutdown error", "error", err) // log but continue to web shutdown
 	}
-	slog.Debug("SSH server drained")                                                                    // log after SSH is clear
-	webCtx, webCancel := context.WithTimeout(context.Background(), 5*time.Second)                       // 5 s for in-flight HTTP requests to complete
-	defer webCancel()                                                                                    // release timeout resources
-	if err := pkgs.webServer.Shutdown(webCtx); err != nil {                                            // gracefully stop the HTTP server
-		slog.Error("web server shutdown error", "error", err)                                          // log but continue — ports are freed at process exit
+	slog.Debug("SSH server drained")                                              // log after SSH is clear
+	webCtx, webCancel := context.WithTimeout(context.Background(), 5*time.Second) // 5 s for in-flight HTTP requests to complete
+	defer webCancel()                                                             // release timeout resources
+	if err := pkgs.webServer.Shutdown(webCtx); err != nil {                       // gracefully stop the HTTP server
+		slog.Error("web server shutdown error", "error", err) // log but continue — ports are freed at process exit
 	}
-	slog.Info("graceful shutdown complete")                                                             // log so container orchestration can see a clean teardown
+	slog.Info("graceful shutdown complete") // log so container orchestration can see a clean teardown
 }
