@@ -4,7 +4,9 @@ Go rewrite of [MistHelper](https://github.com/jmorrison-juniper/MistHelper) — 
 
 ## Status
 
-**In development.** Not yet feature-complete. See [MistHelper](https://github.com/jmorrison-juniper/MistHelper) for the production Python version.
+**Active development — foundational scaffold complete.** All 5 internal packages are wired and tested. 89 menu stubs are registered; each stub will be replaced with a real implementation as operations are ported from the Python version.
+
+See [MistHelper](https://github.com/jmorrison-juniper/MistHelper) for the production Python version.
 
 ## Development Model
 
@@ -47,7 +49,7 @@ go run ./cmd/misthelper
 
 ## Project Structure
 
-```
+```text
 cmd/misthelper/     # main entrypoint
 internal/
   api/              # Mist API client wrapper
