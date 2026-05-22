@@ -4,6 +4,7 @@ package ssh
 
 import (
 	"bufio"         // for bufio.NewReader -- wraps the SSH channel so SafeInput can read lines
+	"bytes"         // for bytes.ReplaceAll -- converts \n to \r\n for PTY terminal display
 	"context"       // for context.Context -- all blocking methods accept a cancellable context
 	"crypto/rand"   // for rand.Read -- generates the random hex suffix in session IDs
 	"fmt"           // for fmt.Sprintf and fmt.Errorf -- address formatting and error wrapping
@@ -203,11 +204,27 @@ func (s *Server) processChannelRequests(ch gossh.Channel, requests <-chan *gossh
 	}
 }
 
+// crlfWriter wraps an io.Writer and converts bare \n to \r\n.
+// PTY-allocated SSH sessions expect CR+LF line endings for proper terminal display.
+// Without this, fmt.Fprintln's \n causes cursor movement without carriage return.
+type crlfWriter struct {
+	w io.Writer // Underlying writer -- typically the gossh.Channel for SSH sessions
+}
+
+// Write converts every standalone \n to \r\n before writing to the underlying writer.
+// Returns the original byte count per the io.Writer contract so callers see the expected length.
+func (c *crlfWriter) Write(p []byte) (int, error) {
+	data := bytes.ReplaceAll(p, []byte("\n"), []byte("\r\n")) // Convert LF to CRLF for PTY terminal display
+	_, err := c.w.Write(data)                                 // Write the converted data to the SSH channel
+	return len(p), err                                        // Return original length per io.Writer contract
+}
+
 // runMenuSession wires an io.ReadWriter to the menu Dispatcher and blocks until EOF or context cancellation.
 func (s *Server) runMenuSession(rw io.ReadWriter, sessionID string) {
-	slog.Info("menu session starting", "session", sessionID)           // Log before creating the dispatcher
-	reader := bufio.NewReader(rw)                                      // Wrap the SSH channel in a bufio.Reader for line-at-a-time input
-	dispatcher := menu.NewDispatcher(s.registry, reader, rw, s.writer) // Wire registry, SSH channel (term writer), and output backend into the dispatcher
+	slog.Info("menu session starting", "session", sessionID)                  // Log before creating the dispatcher
+	reader := bufio.NewReader(rw)                                              // Wrap the SSH channel in a bufio.Reader for line-at-a-time input
+	termWriter := &crlfWriter{w: rw}                                           // Wrap SSH channel in CRLF converter for PTY terminal display
+	dispatcher := menu.NewDispatcher(s.registry, reader, termWriter, s.writer) // Wire registry, PTY-safe writer, and output backend into the dispatcher
 	ctx := context.Background()                                        // No external cancellation for the session -- it ends on EOF
 	if err := dispatcher.Run(ctx); err != nil {                        // Block until the user exits or the session closes
 		slog.Error("menu session error", "session", sessionID, "error", err) // Log errors so operators can diagnose session failures
