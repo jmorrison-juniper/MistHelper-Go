@@ -22,3 +22,12 @@ dist/
 
 # Go
 vendor/
+
+# Test binaries (go test -c)
+*.test
+*.test.exe
+
+# Coverage profiles
+coverage
+coverage*
+*.coverprofile
