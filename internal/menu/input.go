@@ -55,6 +55,9 @@ func readLineAnyEOL(reader *bufio.Reader) (string, error) {
 			}
 			return builder.String(), nil // Return collected bytes without CR terminator
 		}
+		if currentByte == '\x00' && builder.Len() > 0 { // Some PTY stacks send CR-NUL, where NUL marks end of line
+			return builder.String(), nil // Treat NUL as Enter terminator when user already typed characters
+		}
 		builder.WriteByte(currentByte) // Append regular character byte to the in-progress line buffer
 	}
 }

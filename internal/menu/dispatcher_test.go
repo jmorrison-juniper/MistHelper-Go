@@ -117,6 +117,34 @@ func TestSafeInput_CROnlyTerminator(t *testing.T) {
 	}
 }
 
+// TestSafeInput_CRNULTerminator verifies that SafeInput accepts CR-NUL line endings.
+// Some Windows PTY stacks emit NUL after carriage return when Enter is pressed.
+func TestSafeInput_CRNULTerminator(t *testing.T) {
+	t.Parallel()                                                                     // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString("11\r\x00"))                    // Simulate Enter as CR followed by NUL
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context")         // Call under test with CR-NUL input
+	if err != nil {                                                                   // CR-NUL input must be accepted without error
+		t.Fatalf("expected nil error for CR-NUL input, got %v", err)                    // Report unexpected error for easier debugging
+	}
+	if result != "11" {                                                                // Returned value must exclude CR and NUL terminators
+		t.Errorf("expected %q for CR-NUL input, got %q", "11", result)                  // Report mismatch if parsing failed
+	}
+}
+
+// TestSafeInput_NULTerminator verifies that SafeInput accepts NUL as line terminator
+// when characters have already been typed.
+func TestSafeInput_NULTerminator(t *testing.T) {
+	t.Parallel()                                                                     // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString("11\x00"))                       // Simulate Enter encoded as trailing NUL after typed text
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context")         // Call under test with NUL-terminated input
+	if err != nil {                                                                   // NUL-terminated input must be accepted without error
+		t.Fatalf("expected nil error for NUL-terminated input, got %v", err)             // Report unexpected error for easier debugging
+	}
+	if result != "11" {                                                                // Returned value must exclude NUL terminator
+		t.Errorf("expected %q for NUL-terminated input, got %q", "11", result)          // Report mismatch if parsing failed
+	}
+}
+
 // TestRegistry_Sorted verifies that Sorted returns entries in ascending Number order.
 func TestRegistry_Sorted(t *testing.T) {
 	t.Parallel()                                                      // Safe to run concurrently
