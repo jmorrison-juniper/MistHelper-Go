@@ -328,7 +328,7 @@ FAST_MODE_MAX_CONCURRENT_CONNECTIONS=8  # Environment tunable
 
 ### Container Registry & CI/CD
 - **Registry**: `ghcr.io/jmorrison-juniper/misthelper-go`
-- **Build**: Multi-stage Dockerfile (build stage with Go SDK, runtime stage with scratch/alpine)
+- **Build**: Multi-stage Containerfile (build stage with `golang:1.25-alpine`, runtime stage with `alpine`)
 - **Version Format**: `YY.MM.DD.HH.MM` (UTC timestamp -- consistent with changelog)
 - **Triggers**: Push to `main` (when key files change) or manual workflow dispatch
 
@@ -593,7 +593,7 @@ Security tool findings (gosec, govulncheck, CodeQL) must be **resolved**, not su
 
 ### Delivery Artifacts (Per Release Tag)
 
-1. **Container image** -- multi-arch (amd64/arm64) pushed to GHCR (~25MB scratch-based). This is the sole distribution artifact.
+1. **Container image** -- multi-arch (amd64/arm64) pushed to GHCR (~25MB alpine-based). This is the sole distribution artifact.
 
 ---
 

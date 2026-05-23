@@ -57,7 +57,7 @@ git checkout main && git pull origin main
 - **Natural business keys**: Define PK strategy in endpoint strategies map for new operations
 - **ASCII only in logs**: No Unicode/emoji
 - **File paths**: Use `filepath.Join()`, never hardcoded separators
-- **Container**: Podman primary, port 2200 (SSH), port 8055 (web UI)
+- **Container**: Podman primary, `alpine` runtime base, port 2200 (SSH), port 8055 (web UI)
 - **Zscaler**: Use GitHub Actions for container builds, never local `podman push`
 - **Structured logging**: Use `log/slog` (Go 1.21+ standard library) for all logging
 - **Error handling**: Always check errors, wrap with `fmt.Errorf("context: %w", err)`

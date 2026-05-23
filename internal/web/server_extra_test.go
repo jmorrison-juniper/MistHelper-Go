@@ -3,10 +3,12 @@
 package web
 
 import (
-	"context" // for context.WithTimeout -- short deadline for the shutdown call
-	"net"     // for net.Listen -- find a free port to avoid conflicts
-	"testing" // for testing.T -- standard Go test runner
-	"time"    // for time.Sleep and time.Second -- give ListenAndServe time to bind
+	"context"  // for context.WithTimeout -- short deadline for the shutdown call
+	"errors"   // for errors.New -- construct a fake write error
+	"net"      // for net.Listen -- find a free port to avoid conflicts
+	"net/http" // for http.Header, http.ResponseWriter -- fake ResponseWriter for writeJSON error test
+	"testing"  // for testing.T -- standard Go test runner
+	"time"     // for time.Sleep and time.Second -- give ListenAndServe time to bind
 
 	"github.com/jmorrison-juniper/misthelper-go/internal/api" // for api.Config -- builds test server config
 )
@@ -14,9 +16,9 @@ import (
 // findFreePort finds an available TCP port by binding to :0 and reading the assigned port.
 // This avoids flaky tests caused by hardcoded port conflicts in CI environments.
 func findFreePort(t *testing.T) int {
-	t.Helper()                             // Mark as helper so failures point to the caller
-	ln, err := net.Listen("tcp", ":0")     // Bind to any available port
-	if err != nil {                        // If we cannot find a free port the test cannot proceed
+	t.Helper()                         // Mark as helper so failures point to the caller
+	ln, err := net.Listen("tcp", ":0") // Bind to any available port
+	if err != nil {                    // If we cannot find a free port the test cannot proceed
 		t.Fatalf("findFreePort: %v", err) // Bail with context
 	}
 	port := ln.Addr().(*net.TCPAddr).Port // Extract the assigned port number
@@ -29,9 +31,9 @@ func findFreePort(t *testing.T) int {
 func TestListenAndServe_GracefulShutdown(t *testing.T) {
 	t.Parallel() // Safe to run concurrently -- each test uses a unique free port
 
-	port := findFreePort(t)          // Find a free port to avoid bind conflicts
-	srv := NewServer(api.Config{     // Build the server with the free port
-		WebPort: port,               // Use the dynamically allocated free port
+	port := findFreePort(t)      // Find a free port to avoid bind conflicts
+	srv := NewServer(api.Config{ // Build the server with the free port
+		WebPort: port, // Use the dynamically allocated free port
 	})
 
 	errCh := make(chan error, 1) // Buffer the return value so we can inspect it after shutdown
@@ -42,14 +44,14 @@ func TestListenAndServe_GracefulShutdown(t *testing.T) {
 	time.Sleep(50 * time.Millisecond) // Wait for the server to bind and enter its accept loop
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second) // Short deadline for drain
-	defer cancel()                                                           // Release deadline resources
-	if err := srv.Shutdown(ctx); err != nil {                                // Initiate graceful shutdown
+	defer cancel()                                                          // Release deadline resources
+	if err := srv.Shutdown(ctx); err != nil {                               // Initiate graceful shutdown
 		t.Errorf("Shutdown returned error: %v", err) // Report shutdown error for diagnostics
 	}
 
 	select {
-	case err := <-errCh:                // Wait for ListenAndServe to return
-		if err != nil {                 // ListenAndServe must return nil after graceful Shutdown
+	case err := <-errCh: // Wait for ListenAndServe to return
+		if err != nil { // ListenAndServe must return nil after graceful Shutdown
 			t.Errorf("ListenAndServe returned non-nil error: %v", err) // Report unexpected error
 		}
 	case <-time.After(3 * time.Second): // Fail if ListenAndServe hangs after shutdown
@@ -66,7 +68,7 @@ func TestListenAndServe_BindError(t *testing.T) {
 
 	// Bind the port ourselves BEFORE starting ListenAndServe so it fails.
 	blocker, err := net.Listen("tcp", ":"+itoa(port)) // Occupy the port to cause a bind conflict
-	if err != nil {                                    // If we cannot bind it means the port was taken by a race
+	if err != nil {                                   // If we cannot bind it means the port was taken by a race
 		t.Skipf("could not bind port %d to create conflict: %v", port, err) // Skip rather than fail on CI races
 	}
 	defer func() { _ = blocker.Close() }() // Release the blocker when the test ends
@@ -78,14 +80,46 @@ func TestListenAndServe_BindError(t *testing.T) {
 	}
 }
 
+// ── writeJSON error-path test ────────────────────────────────────────────────
+
+// errWriteResponseWriter is a fake http.ResponseWriter whose Write method always returns an error.
+// It is used to trigger the slog.Error path in writeJSON that executes when the response cannot be written.
+type errWriteResponseWriter struct {
+	header http.Header // Required by the http.ResponseWriter interface
+}
+
+// Header implements http.ResponseWriter.Header.
+func (e *errWriteResponseWriter) Header() http.Header {
+	return e.header // Return the stored header map
+}
+
+// WriteHeader implements http.ResponseWriter.WriteHeader.
+func (e *errWriteResponseWriter) WriteHeader(_ int) {} // No-op: status code not needed for this test
+
+// Write implements http.ResponseWriter.Write and always returns an error.
+func (e *errWriteResponseWriter) Write(_ []byte) (int, error) {
+	return 0, errors.New("simulated write error") // Always fail so writeJSON hits the slog.Error branch
+}
+
+// TestWriteJSON_WriteError verifies that writeJSON logs an error and returns without panicking when
+// the underlying http.ResponseWriter.Write call fails. This covers the slog.Error path that fires
+// when a client disconnects or the response buffer is full mid-write.
+func TestWriteJSON_WriteError(t *testing.T) {
+	t.Parallel() // Independent of all other tests -- uses no shared state
+
+	w := &errWriteResponseWriter{header: http.Header{}} // Fake writer that always errors on Write
+	writeJSON(w, `{"status":"ok"}`)                     // Must not panic; should log the write error internally
+	// No assertion on slog output -- verifying no panic and no hang is sufficient coverage for this path
+}
+
 // itoa converts an int to its string representation.
 // Avoids importing strconv just for one conversion in this test file.
 func itoa(n int) string {
 	if n == 0 { // Handle zero explicitly to avoid the loop below returning empty string
 		return "0" // Return "0" for zero input
 	}
-	digits := make([]byte, 0, 6)      // Allocate a small buffer for the digit bytes
-	for n > 0 {                       // Extract digits in reverse order
+	digits := make([]byte, 0, 6) // Allocate a small buffer for the digit bytes
+	for n > 0 {                  // Extract digits in reverse order
 		digits = append(digits, byte('0'+n%10)) // Append the least significant digit
 		n /= 10                                 // Shift right by one decimal place
 	}

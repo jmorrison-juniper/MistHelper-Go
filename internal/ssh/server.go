@@ -32,11 +32,12 @@ const shutdownTimeout = 30 * time.Second
 // Server is the SSH server that accepts connections on cfg.SSHPort.
 // Each connection launches the MistHelper menu in an isolated session directory.
 type Server struct {
-	cfg      api.Config     // Runtime config carrying SSHPort, SSHUser, SSHPassword
-	signer   gossh.Signer   // Host key signer -- loaded once at startup via LoadOrCreateHostKey
-	registry *menu.Registry // All registered menu entries -- shared across sessions (read-only)
-	writer   output.Writer  // Output backend (CSV/SQLite) -- shared across sessions
-	wg       sync.WaitGroup // Tracks active sessions so Shutdown can wait for clean exit
+	cfg         api.Config     // Runtime config carrying SSHPort, SSHUser, SSHPassword
+	signer      gossh.Signer   // Host key signer -- loaded once at startup via LoadOrCreateHostKey
+	registry    *menu.Registry // All registered menu entries -- shared across sessions (read-only)
+	writer      output.Writer  // Output backend (CSV/SQLite) -- shared across sessions
+	wg          sync.WaitGroup // Tracks active sessions so Shutdown can wait for clean exit
+	sessionsDir string         // Override for session directory base; empty = use sessionDirBase (set in tests)
 }
 
 // NewServer creates a Server with the given dependencies.
@@ -140,9 +141,13 @@ func (s *Server) handleConn(netConn net.Conn, config *gossh.ServerConfig) {
 
 // prepareSessionDir creates an isolated working directory for a session.
 func (s *Server) prepareSessionDir(sessionID string) error {
-	sessDir := filepath.Join(sessionDirBase, "session_"+sessionID) // Build the unique session directory path
-	slog.Info("creating session directory", "path", sessDir)       // Log before the directory creation
-	if err := os.MkdirAll(sessDir, 0750); err != nil {             // Create the directory with rwxr-x--- (owner+group only) per G301
+	base := sessionDirBase   // Default to the package-level constant for production use
+	if s.sessionsDir != "" { // Override with the test-supplied directory when set (avoids read-only fs issues in tests)
+		base = s.sessionsDir
+	}
+	sessDir := filepath.Join(base, "session_"+sessionID)     // Build the unique session directory path
+	slog.Info("creating session directory", "path", sessDir) // Log before the directory creation
+	if err := os.MkdirAll(sessDir, 0750); err != nil {       // Create the directory with rwxr-x--- (owner+group only) per G301
 		return fmt.Errorf("create session dir %s: %w", sessDir, err) // Wrap with path so caller logs the right directory
 	}
 	slog.Debug("session directory created", "path", sessDir) // Log success after creation
@@ -221,12 +226,12 @@ func (c *crlfWriter) Write(p []byte) (int, error) {
 
 // runMenuSession wires an io.ReadWriter to the menu Dispatcher and blocks until EOF or context cancellation.
 func (s *Server) runMenuSession(rw io.ReadWriter, sessionID string) {
-	slog.Info("menu session starting", "session", sessionID)                  // Log before creating the dispatcher
+	slog.Info("menu session starting", "session", sessionID)                   // Log before creating the dispatcher
 	reader := bufio.NewReader(rw)                                              // Wrap the SSH channel in a bufio.Reader for line-at-a-time input
 	termWriter := &crlfWriter{w: rw}                                           // Wrap SSH channel in CRLF converter for PTY terminal display
 	dispatcher := menu.NewDispatcher(s.registry, reader, termWriter, s.writer) // Wire registry, PTY-safe writer, and output backend into the dispatcher
-	ctx := context.Background()                                        // No external cancellation for the session -- it ends on EOF
-	if err := dispatcher.Run(ctx); err != nil {                        // Block until the user exits or the session closes
+	ctx := context.Background()                                                // No external cancellation for the session -- it ends on EOF
+	if err := dispatcher.Run(ctx); err != nil {                                // Block until the user exits or the session closes
 		slog.Error("menu session error", "session", sessionID, "error", err) // Log errors so operators can diagnose session failures
 	}
 	slog.Debug("menu session ended", "session", sessionID) // Log after the session completes

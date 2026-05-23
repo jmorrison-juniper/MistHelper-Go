@@ -118,3 +118,59 @@ func TestRegistry_Sorted(t *testing.T) {
 		t.Errorf("expected [10 20 30], got [%d %d %d]", sorted[0].Number, sorted[1].Number, sorted[2].Number)
 	}
 }
+
+// TestDispatch_DestructiveEOFCancels verifies that execute returns nil (not an error) when
+// SafeInput returns EOF during the destructive confirmation prompt.
+// This covers the confirmDestructive error path (return false, err) AND the
+// execute "err != nil || !confirmed" cancellation path (slog.Info + return nil).
+func TestDispatch_DestructiveEOFCancels(t *testing.T) {
+	t.Parallel()         // Safe to run concurrently
+	reg := NewRegistry() // Fresh registry for this test
+	called := 0          // Track whether the handler was (incorrectly) invoked
+	reg.Register(Entry{  // Destructive entry -- confirmation required before handler runs
+		Number:      91,            // Arbitrary destructive op number
+		Title:       "AP Reboot",   // Title shown in the confirmation warning
+		Category:    "Destructive", // Category grouping
+		Destructive: true,          // Triggers the confirmDestructive gate
+		Handler: func(ctx context.Context, r *bufio.Reader, term io.Writer, w output.Writer) error {
+			called++ // Must NOT be incremented -- handler should be blocked by EOF
+			return nil
+		},
+	})
+	reader := bufio.NewReader(bytes.NewBufferString(""))       // EOF immediately -- no confirmation text
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{}) // Dispatcher with empty stdin
+	err := d.Dispatch(context.Background(), 91)                // Dispatch destructive op -- must be cancelled
+	if err != nil {                                            // Cancellation must return nil, not the EOF error
+		t.Errorf("expected nil error on EOF cancellation, got %v", err) // Report unexpected error
+	}
+	if called != 0 { // Handler must NOT run when confirmation is aborted by EOF
+		t.Errorf("handler must not run on EOF; invoked %d time(s)", called) // Report incorrect invocation
+	}
+}
+
+// TestDispatch_DestructiveWrongTextCancels verifies that execute returns nil when the user
+// types the wrong confirmation text. This covers the "!confirmed" branch in execute.
+func TestDispatch_DestructiveWrongTextCancels(t *testing.T) {
+	t.Parallel()         // Safe to run concurrently
+	reg := NewRegistry() // Fresh registry for this test
+	called := 0          // Track whether the handler was (incorrectly) invoked
+	reg.Register(Entry{  // Destructive entry
+		Number:      92,              // Arbitrary destructive op number
+		Title:       "AP Reboot All", // Title shown in the confirmation warning
+		Category:    "Destructive",   // Category grouping
+		Destructive: true,            // Triggers the confirmDestructive gate
+		Handler: func(ctx context.Context, r *bufio.Reader, term io.Writer, w output.Writer) error {
+			called++ // Must NOT be incremented -- handler blocked by wrong confirmation text
+			return nil
+		},
+	})
+	reader := bufio.NewReader(bytes.NewBufferString("WRONG\n")) // Wrong text -- not "CONFIRM"
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{})  // Dispatcher with wrong-text stdin
+	err := d.Dispatch(context.Background(), 92)                 // Dispatch -- should be cancelled
+	if err != nil {                                             // Cancellation must return nil
+		t.Errorf("expected nil error on wrong confirmation, got %v", err) // Report unexpected error
+	}
+	if called != 0 { // Handler must NOT run when confirmation text is wrong
+		t.Errorf("handler must not run on wrong confirmation; invoked %d time(s)", called) // Report incorrect invocation
+	}
+}
