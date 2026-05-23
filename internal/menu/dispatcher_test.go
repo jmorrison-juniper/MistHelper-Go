@@ -103,6 +103,20 @@ func TestSafeInput_EOF(t *testing.T) {
 	}
 }
 
+// TestSafeInput_CROnlyTerminator verifies that SafeInput accepts CR-only Enter sequences.
+// Some SSH PTY clients send carriage return without line feed when Enter is pressed.
+func TestSafeInput_CROnlyTerminator(t *testing.T) {
+	t.Parallel()                                                                     // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString("11\r"))                         // Simulate PTY Enter with CR-only line ending
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context")         // Call under test with CR-only terminated input
+	if err != nil {                                                                   // CR-only input must be accepted without error
+		t.Fatalf("expected nil error for CR-only input, got %v", err)                    // Report unexpected error for easier debugging
+	}
+	if result != "11" {                                                                // Returned value must exclude the CR terminator
+		t.Errorf("expected %q for CR-only input, got %q", "11", result)                  // Report mismatch if parsing failed
+	}
+}
+
 // TestRegistry_Sorted verifies that Sorted returns entries in ascending Number order.
 func TestRegistry_Sorted(t *testing.T) {
 	t.Parallel()                                                      // Safe to run concurrently

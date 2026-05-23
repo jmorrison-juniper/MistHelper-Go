@@ -56,6 +56,33 @@ func TestRun_ValidOptionThenEOF(t *testing.T) {
 	}
 }
 
+// TestRun_ValidOptionWithCROnlyThenEOF verifies that CR-only Enter sequences work in Run.
+// This mirrors SSH PTY behavior where pressing Enter may send '\r' without '\n'.
+func TestRun_ValidOptionWithCROnlyThenEOF(t *testing.T) {
+	t.Parallel() // Safe to run concurrently
+
+	reg := NewRegistry() // Registry with one entry to dispatch to
+	called := 0          // Track how many times the handler is invoked
+	reg.Register(Entry{
+		Number:   11,               // Menu number the test will enter as input
+		Title:    "Test Operation", // Human-readable title (appears in menu output)
+		Category: "Test",           // Category for grouping in PrintMenu
+		Handler: func(ctx context.Context, r *bufio.Reader, term io.Writer, w output.Writer) error {
+			called++ // Increment counter so we can assert exactly one invocation
+			return nil
+		},
+	})
+	reader := bufio.NewReader(bytes.NewBufferString("11\r"))   // CR-only choice followed by EOF
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{}) // Build dispatcher
+	err := d.Run(context.Background())                         // Run: pick 11 via CR-only Enter, call handler, EOF, return nil
+	if err != nil {                                            // Must return nil on clean EOF after dispatch
+		t.Errorf("expected nil error, got %v", err) // Report unexpected error
+	}
+	if called != 1 { // Handler must be called exactly once
+		t.Errorf("expected handler called 1 time, got %d", called) // Report count mismatch
+	}
+}
+
 // TestRun_NonNumericInputThenEOF verifies that Run handles non-numeric input gracefully.
 // The loop must not crash or return an error when the user types an invalid string.
 func TestRun_NonNumericInputThenEOF(t *testing.T) {
