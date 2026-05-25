@@ -1,5 +1,6 @@
 // Package api -- pagination tests covering fetchSitePage and ListSites.
-// Uses a test hook (testPageFn) injected into Client to avoid real Mist API calls.
+// Uses a test hook (pageFetcher) injected into Client to avoid real Mist API calls
+// while still exercising the retry loop inside fetchSitePage.
 package api
 
 import (
@@ -15,13 +16,13 @@ import (
 
 // testClientWithFn builds a Client that uses the supplied function instead of the real SDK.
 // The Client is configured with a zero RateLimitMs so tests complete without sleeping.
-func testClientWithFn(fn func(ctx context.Context, orgID uuid.UUID, page int) ([]models.Site, error)) *Client {
+func testClientWithFn(fn func(ctx context.Context, orgID uuid.UUID, limit int, page int) ([]models.Site, error)) *Client {
 	return &Client{ // Construct Client with only test-relevant fields set
 		cfg: Config{
 			OrgID:       "00000000-0000-0000-0000-000000000000", // Valid UUID so uuid.Parse succeeds
 			RateLimitMs: 0,                                      // Zero rate limit avoids sleeps in tests
 		},
-		testPageFn: fn, // Inject mock page-fetcher; bypasses real SDK calls
+		pageFetcher: fn, // Inject mock page-fetcher; keeps the retry loop active in tests
 	}
 }
 
@@ -42,7 +43,7 @@ func TestListSites_InvalidOrgID(t *testing.T) {
 // the first page contains zero sites.
 func TestListSites_EmptyResult(t *testing.T) {
 	t.Parallel() // Independent of all other tests
-	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, _ int) ([]models.Site, error) {
+	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, _ int, _ int) ([]models.Site, error) {
 		return []models.Site{}, nil // Return empty page -- pagination must stop immediately
 	})
 	result, err := client.ListSites(context.Background()) // Must succeed and return empty slice
@@ -59,7 +60,7 @@ func TestListSites_EmptyResult(t *testing.T) {
 func TestListSites_SinglePage(t *testing.T) {
 	t.Parallel()   // Independent of all other tests
 	callCount := 0 // Tracks how many pages were fetched
-	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, page int) ([]models.Site, error) {
+	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, _ int, page int) ([]models.Site, error) {
 		callCount++    // Count this page fetch
 		if page == 1 { // Only page 1 should be fetched
 			return make([]models.Site, 5), nil // Return 5 sites -- less than limit, so pagination stops
@@ -83,7 +84,7 @@ func TestListSites_SinglePage(t *testing.T) {
 func TestListSites_MultiPage(t *testing.T) {
 	t.Parallel()   // Independent of all other tests
 	callCount := 0 // Tracks how many pages were fetched
-	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, page int) ([]models.Site, error) {
+	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, _ int, page int) ([]models.Site, error) {
 		callCount++ // Count this page fetch
 		switch page {
 		case 1:
@@ -111,7 +112,7 @@ func TestListSites_MultiPage(t *testing.T) {
 func TestListSites_PageError(t *testing.T) {
 	t.Parallel()                                // Independent of all other tests
 	want := errors.New("transient API failure") // Sentinel error for comparison
-	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, _ int) ([]models.Site, error) {
+	client := testClientWithFn(func(_ context.Context, _ uuid.UUID, _ int, _ int) ([]models.Site, error) {
 		return nil, want // Simulate a page-fetch failure (e.g., network error)
 	})
 	_, err := client.ListSites(context.Background()) // Must fail and propagate the error
@@ -129,7 +130,7 @@ func TestListSites_ContextCancelled(t *testing.T) {
 	t.Parallel()                                            // Independent of all other tests
 	ctx, cancel := context.WithCancel(context.Background()) // Cancellable context for this test
 	cancel()                                                // Pre-cancel to ensure immediate failure
-	client := testClientWithFn(func(callCtx context.Context, _ uuid.UUID, _ int) ([]models.Site, error) {
+	client := testClientWithFn(func(callCtx context.Context, _ uuid.UUID, _ int, _ int) ([]models.Site, error) {
 		return nil, callCtx.Err() // Return context error so ListSites treats it as a page failure
 	})
 	_, err := client.ListSites(ctx) // Must fail because context is already cancelled
@@ -140,18 +141,18 @@ func TestListSites_ContextCancelled(t *testing.T) {
 
 // ── fetchSitePage tests ───────────────────────────────────────────────────────
 
-// TestFetchSitePage_TestHookReturnsData verifies the testPageFn short-circuit path:
-// when a testPageFn is set, fetchSitePage returns its result directly.
+// TestFetchSitePage_TestHookReturnsData verifies the pageFetcher path:
+// when a pageFetcher is set, fetchSitePage returns its result through the retry wrapper.
 func TestFetchSitePage_TestHookReturnsData(t *testing.T) {
 	t.Parallel()                                                   // Independent of all other tests
 	orgID, _ := uuid.Parse("00000000-0000-0000-0000-000000000000") // Valid UUID for the call
 	client := &Client{                                             // Construct Client with test hook set
 		cfg: Config{OrgID: orgID.String()}, // Config carries the OrgID string
-		testPageFn: func(_ context.Context, _ uuid.UUID, _ int) ([]models.Site, error) {
+		pageFetcher: func(_ context.Context, _ uuid.UUID, _ int, _ int) ([]models.Site, error) {
 			return make([]models.Site, 7), nil // Return 7 fake sites to verify they pass through
 		},
 	}
-	sites, err := client.fetchSitePage(context.Background(), orgID, 1) // Must delegate to testPageFn
+	sites, err := client.fetchSitePage(context.Background(), orgID, 1) // Must delegate to pageFetcher
 	if err != nil {                                                    // No error expected from the test hook
 		t.Fatalf("fetchSitePage returned unexpected error: %v", err) // Bail with error detail
 	}
@@ -160,15 +161,15 @@ func TestFetchSitePage_TestHookReturnsData(t *testing.T) {
 	}
 }
 
-// TestFetchSitePage_CancelledContext verifies that fetchSitePage (without testPageFn)
+// TestFetchSitePage_CancelledContext verifies that fetchSitePage (without pageFetcher)
 // returns an error when the context is cancelled before withRetry can execute the closure.
 // This covers the outer withRetry + error-return path without a real SDK client.
 func TestFetchSitePage_CancelledContext(t *testing.T) {
 	t.Parallel()                                                   // Independent of all other tests
 	orgID, _ := uuid.Parse("00000000-0000-0000-0000-000000000000") // Valid UUID for the call
-	client := &Client{                                             // No testPageFn set -- uses real withRetry path
-		cfg:        Config{OrgID: orgID.String()}, // Minimal config (no real SDK)
-		testPageFn: nil,                           // Explicitly nil so the real withRetry path runs
+	client := &Client{                                             // No pageFetcher set -- uses real withRetry path
+		cfg:         Config{OrgID: orgID.String()}, // Minimal config (no real SDK)
+		pageFetcher: nil,                           // Explicitly nil so the real withRetry path runs
 	}
 	ctx, cancel := context.WithCancel(context.Background()) // Cancellable context
 	cancel()                                                // Pre-cancel so withRetry returns immediately (no SDK call)
@@ -178,14 +179,14 @@ func TestFetchSitePage_CancelledContext(t *testing.T) {
 	}
 }
 
-// TestFetchSitePage_TestHookError verifies that an error from testPageFn is propagated
+// TestFetchSitePage_TestHookError verifies that an error from pageFetcher is propagated
 // through fetchSitePage to the caller unchanged.
 func TestFetchSitePage_TestHookError(t *testing.T) {
 	t.Parallel()                                                   // Independent of all other tests
 	orgID, _ := uuid.Parse("00000000-0000-0000-0000-000000000000") // Valid UUID for the call
 	want := errors.New("hook error")                               // Sentinel error for comparison
 	client := &Client{                                             // Client with error-returning test hook
-		testPageFn: func(_ context.Context, _ uuid.UUID, _ int) ([]models.Site, error) {
+		pageFetcher: func(_ context.Context, _ uuid.UUID, _ int, _ int) ([]models.Site, error) {
 			return nil, want // Simulate a failure in the page-fetcher (e.g., SDK error)
 		},
 	}

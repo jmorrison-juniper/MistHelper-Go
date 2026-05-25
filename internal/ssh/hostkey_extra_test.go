@@ -13,20 +13,13 @@ import (
 
 // TestKeyFileExists_StatError verifies that keyFileExists returns false and a non-nil error
 // when os.Stat returns an error that is NOT os.IsNotExist (e.g. ENOTDIR).
-// To trigger ENOTDIR: create a regular file at what would be the parent directory, then ask
-// keyFileExists to stat a path WITHIN that regular file (impossible on any OS).
+// To trigger this deterministically across OSes, pass a path with a NUL byte, which
+// os.Stat rejects as an invalid path (not an IsNotExist condition).
 func TestKeyFileExists_StatError(t *testing.T) {
 	t.Parallel() // Independent of all other tests
 
-	parent := t.TempDir()                                                 // Scratch directory -- removed after test
-	blockingFile := filepath.Join(parent, "block")                        // This will be a regular file, not a directory
-	if err := os.WriteFile(blockingFile, []byte("x"), 0644); err != nil { // Write a regular file at "block"
-		t.Fatalf("setup: write blocking file: %v", err) // Bail if the test fixture cannot be created
-	}
-	// Now stat "block/ssh_host_rsa_key" -- "block" is a file, not a directory
-	// Linux/macOS returns ENOTDIR; Windows returns ERROR_DIRECTORY -- neither is IsNotExist
-	exists, err := keyFileExists(filepath.Join(blockingFile, "ssh_host_rsa_key")) // Triggers non-IsNotExist error
-	if err == nil {                                                               // Must return an error (not nil)
+	exists, err := keyFileExists("invalid\x00path") // Invalid path should force a non-IsNotExist stat error on all platforms
+	if err == nil {                                 // Must return an error (not nil)
 		t.Error("expected non-nil error from keyFileExists when parent is a regular file")
 	}
 	if exists { // Must return exists=false when the stat fails

@@ -153,42 +153,56 @@ var stubOps = []struct {
 }
 
 // main is the application entry point.
-// Parses flags, wires all packages, starts background servers, runs the menu, then shuts down.
+// It delegates to runMain so the orchestration logic can be unit tested without
+// calling os.Exit from inside the test process.
 func main() {
-	menuFlag := flag.Int("menu", -1, "Run a menu option directly (-1=interactive, 0=quit, N=operation N)") // --menu flag for direct dispatch or clean-quit
-	formatFlag := flag.String("format", "", "Output format: csv or sqlite (overrides OUTPUT_FORMAT)")      // --format overrides the OUTPUT_FORMAT env var
-	showVersion := flag.Bool("version", false, "Print version and exit")                                   // --version prints the build version string
-	flag.Parse()                                                                                           // parse before any side effects that read flags
+	if err := runMain(os.Args[1:]); err != nil { // Run the full application flow using the real command-line args
+		slog.Error("initialisation failed", "error", err) // Log the fatal error so container logs capture it
+		os.Exit(1)                                        // Exit non-zero so orchestration can restart the container
+	}
+}
 
-	if *showVersion { // handle --version before loading credentials — no .env needed
-		slog.Info("MistHelper-Go", "version", version) // emit structured version log; slog writes to stderr by default
-		os.Exit(0)                                     // clean exit: container health checks can call --version safely
+// runMain parses command-line flags, wires all packages, starts background servers,
+// runs the menu, and performs graceful shutdown.
+// It returns an error instead of exiting so tests can exercise the orchestration path.
+func runMain(args []string) error {
+	menuFlag := flag.NewFlagSet("misthelper", flag.ContinueOnError)                                             // Create an isolated flag set so tests can call runMain repeatedly
+	menuValue := menuFlag.Int("menu", -1, "Run a menu option directly (-1=interactive, 0=quit, N=operation N)") // Direct dispatch or clean quit
+	formatValue := menuFlag.String("format", "", "Output format: csv or sqlite (overrides OUTPUT_FORMAT)")      // CLI override for output backend
+	showVersion := menuFlag.Bool("version", false, "Print version and exit")                                    // Version flag short-circuits the startup flow
+	menuFlag.SetOutput(io.Discard)                                                                              // Suppress flag package usage text in normal runs; errors still return for callers to handle
+	if err := menuFlag.Parse(args); err != nil {                                                                // Parse the supplied args instead of global os.Args for testability
+		return err // Return the parse error so tests can assert on it if needed
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // root context; cancelled on Ctrl+C or SIGTERM
-	defer stop()                                                                           // release signal resources and cancel ctx when main returns
-
-	pkgs, err := initPackages(*formatFlag) // load config, wire all five packages; may write data/ssh_host_rsa_key
-	if err != nil {
-		slog.Error("initialisation failed", "error", err) // log before os.Exit so container logs capture the cause
-		os.Exit(1)                                        // non-zero exit signals container orchestration to restart
+	if *showVersion { // Handle --version before loading credentials so health checks stay lightweight
+		slog.Info("MistHelper-Go", "version", version) // Emit the version as structured log output
+		return nil                                     // Clean exit: no package wiring or server startup required
 	}
-	defer func() { // flush and close the output backend on any exit path
-		if err := pkgs.writer.Close(); err != nil { // check the close error to catch write-flush failures
-			slog.Error("failed to close output writer", "error", err) // log so operators know data may be incomplete
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // Root context; cancelled on Ctrl+C or SIGTERM
+	defer stop()                                                                           // Release signal resources and cancel ctx when runMain returns
+
+	pkgs, err := initPackages(*formatValue) // Load config, wire all five packages; may write data/ssh_host_rsa_key
+	if err != nil {                         // Initialization can fail if env vars or filesystem setup are invalid
+		return err // Return the wrapped initialization error to main
+	}
+	defer func() { // Flush and close the output backend on any exit path
+		if closeErr := pkgs.writer.Close(); closeErr != nil { // Check the close error to catch write-flush failures
+			slog.Error("failed to close output writer", "error", closeErr) // Log so operators know data may be incomplete
 		}
 	}()
 
-	registerStubs(pkgs.registry) // populate registry with placeholder handlers for all 89 operations
-	startServers(ctx, pkgs)      // start SSH (port 2200) and web (port 8055) in background goroutines
+	registerStubs(pkgs.registry) // Populate registry with placeholder handlers for all 89 operations
+	startServers(ctx, pkgs)      // Start SSH (port 2200) and web (port 8055) in background goroutines
 
-	if err := runOrDispatch(ctx, pkgs.dispatcher, *menuFlag); err != nil { // run interactive menu or direct dispatch
-		slog.Error("menu exited with error", "error", err) // log abnormal exits for operator visibility
-		shutdown(pkgs)                                     // attempt graceful shutdown before dying
-		os.Exit(1)                                         // non-zero so container orchestration knows something went wrong
+	if err := runOrDispatch(ctx, pkgs.dispatcher, *menuValue); err != nil { // Run interactive menu or direct dispatch
+		shutdown(pkgs) // Attempt graceful shutdown before returning the error
+		return err     // Propagate the menu error so the caller can decide how to exit
 	}
 
-	shutdown(pkgs) // graceful shutdown on clean exit: SSH drain (30 s) → web (5 s) → done
+	shutdown(pkgs) // Graceful shutdown on clean exit: SSH drain (30 s) → web (5 s) → done
+	return nil     // Signal success to main()
 }
 
 // initPackages loads the .env file, validates configuration, and constructs all five packages.

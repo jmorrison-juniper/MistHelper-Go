@@ -20,9 +20,9 @@ const defaultPageLimit = 1000
 
 // Client wraps the mistapi-go SDK with project-level config, retry, and logging.
 type Client struct {
-	sdk        mistapi.ClientInterface                                                     // unexported SDK handle; ClientInterface is returned by NewClient
-	cfg        Config                                                                      // config by value; avoids pointer aliasing issues
-	testPageFn func(ctx context.Context, orgID uuid.UUID, page int) ([]models.Site, error) // nil in production; injected by unit tests to avoid real SDK calls
+	sdk         mistapi.ClientInterface                                                                // unexported SDK handle; ClientInterface is returned by NewClient
+	cfg         Config                                                                                 // config by value; avoids pointer aliasing issues
+	pageFetcher func(ctx context.Context, orgID uuid.UUID, limit int, page int) ([]models.Site, error) // production default wraps the SDK; tests can replace it to avoid real API calls
 }
 
 // NewClient constructs a Client from a Config, initialising the mistapi-go SDK.
@@ -39,25 +39,35 @@ func NewClient(cfg Config) (*Client, error) {
 	)
 	sdk := mistapi.NewClient(conf) // construct the SDK client; no network call at this point
 
+	client := &Client{sdk: sdk, cfg: cfg}                                 // Build the client before wiring the page fetcher closure
+	client.pageFetcher = client.fetchPageFromSDK                          // Default to the SDK-backed fetcher in production
 	slog.Debug("Mist API client ready", "rate_limit_ms", cfg.RateLimitMs) // log after successful construction
-	return &Client{sdk: sdk, cfg: cfg}, nil                               // return Client with embedded SDK and config
+	return client, nil                                                    // return Client with embedded SDK and config
+}
+
+// fetchPageFromSDK fetches a single page of org sites directly from the SDK.
+// It is split out so tests can swap in a stub pageFetcher while still exercising
+// the retry logic inside fetchSitePage.
+func (c *Client) fetchPageFromSDK(ctx context.Context, orgID uuid.UUID, limit int, page int) ([]models.Site, error) {
+	resp, callErr := c.sdk.OrgsSites().ListOrgSites(ctx, orgID, &limit, &page) // one SDK call per attempt
+	if callErr != nil {                                                        // SDK failures are treated as retryable by the caller
+		return nil, callErr // Return the raw SDK error so fetchSitePage can wrap it
+	}
+	return resp.Data, nil // Return the page of sites so fetchSitePage can accumulate it
 }
 
 // fetchSitePage fetches a single page of org sites with retry on transient errors.
 // The caller is responsible for sleeping between pages and detecting the last page.
 func (c *Client) fetchSitePage(ctx context.Context, orgID uuid.UUID, page int) ([]models.Site, error) {
-	if c.testPageFn != nil { // Test hook: bypass real SDK call when injected for unit testing
-		return c.testPageFn(ctx, orgID, page) // Delegate to test-provided function instead of hitting the API
-	}
-	limit := defaultPageLimit // page size constant; captured by closure below
+	limit := defaultPageLimit // page size constant; captured by the closure below
 	var sites []models.Site   // result variable populated inside the retry closure
 
 	err := withRetry(ctx, func() error { // withRetry handles exponential backoff on transient failures
-		resp, callErr := c.sdk.OrgsSites().ListOrgSites(ctx, orgID, &limit, &page) // one SDK call per attempt
-		if callErr != nil {
+		pageData, callErr := c.pageFetcher(ctx, orgID, limit, page) // pageFetcher is injected in tests and backed by the SDK in production
+		if callErr != nil {                                         // SDK or test stub failures are treated as retryable here
 			return RetryableError(callErr) // mark as retryable so withRetry will back off and try again
 		}
-		sites = resp.Data // copy results out of the closure on success
+		sites = pageData // copy results out of the closure on success
 		return nil
 	}, DefaultRetryConfig)
 

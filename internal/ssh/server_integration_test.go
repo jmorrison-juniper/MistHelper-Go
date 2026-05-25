@@ -200,18 +200,27 @@ func TestShutdown_ContextCancelled(t *testing.T) {
 // TestListenAndServe_BindError verifies that ListenAndServe returns a wrapped error
 // when the configured port is already occupied by another listener.
 func TestListenAndServe_BindError(t *testing.T) {
-	t.Parallel()                                                          // Independent of all other tests
-	port := findFreePort(t)                                               // Allocate a free port
-	occupier, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port)) // Hold the port so the server cannot bind
-	if err != nil {                                                       // If we can't occupy the port the test is invalid
+	t.Parallel()                                                 // Independent of all other tests
+	port := findFreePort(t)                                      // Allocate a free port
+	occupier, err := net.Listen("tcp", fmt.Sprintf(":%d", port)) // Hold the wildcard bind so the server cannot bind on dual-stack hosts
+	if err != nil {                                              // If we can't occupy the port the test is invalid
 		t.Fatalf("failed to occupy port %d: %v", port, err) // Bail with context
 	}
 	defer func() { _ = occupier.Close() }() // Release the occupying listener after the test
 
-	server := newTestServer(t, port)                  // Build a server targeting the occupied port
-	err = server.ListenAndServe(context.Background()) // Must fail immediately -- port is in use
-	if err == nil {                                   // A nil error means the bind unexpectedly succeeded
-		t.Error("ListenAndServe returned nil on an occupied port; want error")
+	server := newTestServer(t, port)                                               // Build a server targeting the occupied port
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond) // Safety timeout so a false-positive bind cannot hang this test
+	defer cancel()                                                                 // Ensure context resources are always released
+	errCh := make(chan error, 1)                                                   // Buffered channel so goroutine cannot block on send
+	go func() { errCh <- server.ListenAndServe(ctx) }()                            // Run ListenAndServe in goroutine to avoid blocking this test forever
+
+	select {
+	case err = <-errCh: // Collect result and assert bind failure
+		if err == nil { // A nil error means the bind unexpectedly succeeded and returned only after timeout
+			t.Error("ListenAndServe returned nil on occupied port; want bind error")
+		}
+	case <-time.After(3 * time.Second): // Hard stop if goroutine somehow wedges despite timeout
+		t.Fatal("ListenAndServe bind-error test timed out")
 	}
 }
 
