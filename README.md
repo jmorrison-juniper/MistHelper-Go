@@ -16,7 +16,7 @@ MistHelper-Go **trails** the [Python MistHelper](https://github.com/jmorrison-ju
 
 - Python-free: single static binary, no runtime dependencies
 - ~25MB container image (vs ~500MB Python equivalent)
-- Full feature parity with MistHelper (187 menu operations)
+- Full feature parity with MistHelper (193 menu operations)
 - Built on [`tmunzer/mistapi-go`](https://github.com/tmunzer/mistapi-go) — the official Go Mist API SDK
 
 ## Requirements (Development Only)
