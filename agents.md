@@ -64,6 +64,10 @@ git checkout main && git pull origin main
 - **Context**: Always pass `context.Context` for cancellation and timeouts
 - **Inline comments on EVERY line** (NON-NEGOTIABLE): Same-line comments explaining *why*. See `copilot-instructions.md` § Inline Comments for examples.
 - **Action logging before/after EVERY operation** (NON-NEGOTIABLE): `slog.Info()` before, `slog.Debug()` after. See `copilot-instructions.md` § Action Logging for examples.
+- **Token efficiency** (Effective June 2026): Use Auto mode by default. Share only relevant
+  files/functions -- never entire repos. Start only needed MCP servers. Use agent mode for
+  multi-step tasks, standard chat for quick questions. Ask for a plan before large changes.
+  See `copilot-token-efficiency.instructions.md` for full details.
 
 ## Python-First Development Model
 

@@ -40,6 +40,26 @@ func TestStrategies_KnownNaturalPK(t *testing.T) {
 	}
 }
 
+// TestStrategies_GetOrgInventoryNaturalPK verifies getOrgInventory uses natural PK strategy.
+// Option 26 writes must upsert by stable inventory device ID for deduplication parity.
+func TestStrategies_GetOrgInventoryNaturalPK(t *testing.T) {
+	t.Parallel() // Safe to run concurrently with other map-lookup tests
+
+	strategy, ok := Strategies["getOrgInventory"] // Look up strategy used by menu option 26 export path
+	if !ok {                                       // Missing key would break endpoint strategy routing
+		t.Fatal("Strategies missing key \"getOrgInventory\"") // Fail fast when strategy is not registered
+	}
+	if strategy.Type != PKTypeNatural { // Inventory rows should dedupe by stable UUID identity
+		t.Errorf("getOrgInventory Type = %q, want %q", strategy.Type, PKTypeNatural) // Report mismatched PK type
+	}
+	if len(strategy.PrimaryKey) == 0 { // Natural strategy must define at least one PK column
+		t.Fatal("getOrgInventory PrimaryKey is empty") // Fail because writer cannot dedupe without PK column
+	}
+	if strategy.PrimaryKey[0] != "id" { // Mist inventory primary identifier is device id
+		t.Errorf("getOrgInventory PrimaryKey[0] = %q, want %q", strategy.PrimaryKey[0], "id") // Report wrong PK column
+	}
+}
+
 // TestStrategies_KnownCompositePK verifies that "searchOrgDeviceEvents" has a composite PK.
 // Composite PKs are required for time-series data so re-imports don't create duplicates.
 func TestStrategies_KnownCompositePK(t *testing.T) {

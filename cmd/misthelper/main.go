@@ -31,12 +31,18 @@ const version = "26.05.22.00.00"
 // Passed by value to helper functions so there is no global state.
 type appPackages struct {
 	cfg        api.Config       // runtime configuration loaded from env vars and CLI flags
-	client     *api.Client      // Mist API client wrapping the mistapi-go SDK
+	client     inventoryClient  // Mist API client contract used by operation handlers
 	writer     output.Writer    // CSV or SQLite output backend for all menu operations
 	registry   *menu.Registry   // registered menu entries; shared by menu loop and SSH sessions
 	dispatcher *menu.Dispatcher // interactive menu controller wired to stdin
 	sshServer  *mssh.Server     // SSH server on cfg.SSHPort (default 2200)
 	webServer  *web.Server      // HTTP status and health server on cfg.WebPort (default 8055)
+}
+
+// inventoryClient defines the minimal API dependency needed by menu option 26.
+// Keeping this contract local allows focused testing without touching other API methods.
+type inventoryClient interface {
+	GetOrgInventory(ctx context.Context) ([]map[string]any, error) // Retrieve full org inventory normalized for writer backend
 }
 
 // stubOps defines all 89 menu operations as stubs pending Python→Go port.
@@ -193,7 +199,7 @@ func runMain(args []string) error {
 		}
 	}()
 
-	registerStubs(pkgs.registry) // Populate registry with placeholder handlers for all 89 operations
+	registerStubs(pkgs.registry, pkgs.client) // Populate registry and replace option 26 with real inventory handler
 	startServers(ctx, pkgs)      // Start SSH (port 2200) and web (port 8055) in background goroutines
 
 	if err := runOrDispatch(ctx, pkgs.dispatcher, *menuValue); err != nil { // Run interactive menu or direct dispatch
@@ -239,15 +245,19 @@ func initPackages(formatFlag string) (appPackages, error) {
 }
 
 // registerStubs registers placeholder handlers for all 89 menu operations.
-// Each stub logs the invocation and prints a user-facing "not yet implemented" message.
-func registerStubs(r *menu.Registry) {
+// Option 26 is intentionally replaced with the real org-inventory implementation.
+func registerStubs(r *menu.Registry, client inventoryClient) {
 	slog.Info("registering stub menu handlers", "count", len(stubOps)) // log count so we can confirm all 89 are loaded
 	for _, op := range stubOps {                                       // range over the package-level stub table
+		handler := makeStubHandler(op.n, op.name) // Default every operation to a placeholder handler
+		if op.n == 26 && client != nil {          // Replace only option 26 with production inventory path
+			handler = makeOrgInventoryHandler(client) // Wire real handler while preserving all other stubs
+		}
 		r.Register(menu.Entry{ // register each operation in the shared registry
 			Number:   op.n,                           // integer option number the user types at the menu prompt
 			Title:    op.name,                        // human-readable name shown in the menu display
 			Category: op.cat,                         // category header used to group related operations visually
-			Handler:  makeStubHandler(op.n, op.name), // closure captures n and name for the log and print message
+			Handler:  handler,                         // stub for most options; real handler for option 26
 		})
 	}
 	slog.Debug("stub registration complete", "count", len(stubOps)) // confirm after loop completes
@@ -260,6 +270,31 @@ func makeStubHandler(n int, name string) menu.HandlerFunc {
 		slog.Info("stub: operation not yet implemented", "operation", n, "name", name)                                         // log so audit trail shows which stub was invoked
 		_, _ = fmt.Fprintf(term, "  Operation %d (%s) is not yet implemented.\n  Port from MistHelper.py first.\n\n", n, name) // write to terminal writer (os.Stdout local, SSH channel remote)
 		return nil                                                                                                             // nil keeps the interactive menu loop running after this stub exits
+	}
+}
+
+// makeOrgInventoryHandler returns the production handler for menu option 26.
+// It fetches org inventory from API client and exports via output.Writer using getOrgInventory strategy key.
+func makeOrgInventoryHandler(client inventoryClient) menu.HandlerFunc {
+	return func(ctx context.Context, reader *bufio.Reader, term io.Writer, w output.Writer) error { // Capture shared client dependency for each invocation
+		slog.Info("starting org inventory export", "operation", 26) // Log operation start before API call
+		records, err := client.GetOrgInventory(ctx)                   // Fetch and normalize full org inventory dataset
+		if err != nil {                                               // API retrieval failure must be surfaced deterministically
+			slog.Error("org inventory fetch failed", "operation", 26, "error", err) // Log error details for operators
+			_, _ = fmt.Fprintf(term, "  Operation 26 failed: %v\n\n", err)              // Print failure to terminal/SSH session
+			return err                                                   // Propagate failure so direct mode exits non-zero
+		}
+
+		slog.Info("writing org inventory export", "operation", 26, "rows", len(records)) // Log before writer call for action traceability
+		if err := w.Write(ctx, "getOrgInventory", records); err != nil {                      // Route output through writer with required endpoint strategy key
+			slog.Error("org inventory write failed", "operation", 26, "error", err)         // Log writer failure with context
+			_, _ = fmt.Fprintf(term, "  Operation 26 export failed: %v\n\n", err)             // Print writer failure to terminal/SSH session
+			return err                                                                            // Propagate failure so caller receives deterministic error status
+		}
+
+		slog.Debug("org inventory export complete", "operation", 26, "rows", len(records)) // Log completion with output cardinality
+		_, _ = fmt.Fprintf(term, "  Exported %d org inventory records.\n\n", len(records))   // Print success summary for interactive users
+		return nil                                                                              // Signal successful completion to dispatcher
 	}
 }
 

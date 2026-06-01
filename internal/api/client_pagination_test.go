@@ -26,6 +26,18 @@ func testClientWithFn(fn func(ctx context.Context, orgID uuid.UUID, limit int, p
 	}
 }
 
+// testClientWithInventoryFn builds a Client whose inventory pagination function is injected.
+// This allows deterministic org-inventory tests without live SDK traffic.
+func testClientWithInventoryFn(fn func(ctx context.Context, orgID uuid.UUID, limit int, page int, includeVC bool) ([]models.Inventory, error)) *Client {
+	return &Client{ // Construct a minimal client with inventory fetch hook and zero delay
+		cfg: Config{
+			OrgID:       "00000000-0000-0000-0000-000000000000", // Valid UUID string for parser in GetOrgInventory
+			RateLimitMs: 0,                                      // Disable artificial sleep during unit tests
+		},
+		inventoryFetcher: fn, // Inject mock inventory fetcher used by fetchInventoryPage
+	}
+}
+
 // ── ListSites tests ───────────────────────────────────────────────────────────
 
 // TestListSites_InvalidOrgID verifies that a malformed OrgID in Config returns a parse error.
@@ -136,6 +148,74 @@ func TestListSites_ContextCancelled(t *testing.T) {
 	_, err := client.ListSites(ctx) // Must fail because context is already cancelled
 	if err == nil {                 // Nil error means cancellation was ignored (wrong)
 		t.Error("ListSites returned nil error for cancelled context; want error")
+	}
+}
+
+// TestGetOrgInventory_EmptyResult verifies that an empty first inventory page returns an empty slice.
+func TestGetOrgInventory_EmptyResult(t *testing.T) {
+	t.Parallel() // Independent of other tests and uses only injected hooks
+	client := testClientWithInventoryFn(func(_ context.Context, _ uuid.UUID, _ int, _ int, includeVC bool) ([]models.Inventory, error) {
+		if !includeVC { // Python parity requires includeVC=true on inventory calls
+			return nil, errors.New("expected includeVC=true") // Fail fast if parity flag regresses
+		}
+		return []models.Inventory{}, nil // Empty page should terminate pagination immediately
+	})
+	result, err := client.GetOrgInventory(context.Background()) // Execute org-inventory flow under test
+	if err != nil {                                             // Empty inventory must be a valid success case
+		t.Fatalf("GetOrgInventory returned unexpected error: %v", err) // Report unexpected failure details
+	}
+	if len(result) != 0 { // No records expected from empty first page
+		t.Errorf("GetOrgInventory returned %d rows; want 0", len(result)) // Report unexpected row count
+	}
+}
+
+// TestGetOrgInventory_MultiPage verifies that full-page responses trigger pagination continuation.
+func TestGetOrgInventory_MultiPage(t *testing.T) {
+	t.Parallel()   // Independent of other tests and uses only injected hooks
+	callCount := 0 // Track number of inventory-page fetches
+	client := testClientWithInventoryFn(func(_ context.Context, _ uuid.UUID, limit int, page int, includeVC bool) ([]models.Inventory, error) {
+		callCount++ // Count fetch call to validate loop behavior
+		if !includeVC { // Python parity guard: includeVC must always be true
+			return nil, errors.New("expected includeVC=true") // Fail immediately on parity regression
+		}
+		if limit != defaultPageLimit { // Pagination should pass shared default page limit
+			return nil, errors.New("unexpected limit") // Fail if limit contract changes unexpectedly
+		}
+		switch page { // Return two-page sequence: full first page, partial second page
+		case 1:
+			return make([]models.Inventory, defaultPageLimit), nil // Full page should force continuation
+		case 2:
+			return make([]models.Inventory, 2), nil // Partial page should terminate loop
+		default:
+			return nil, errors.New("should not fetch third page") // Any extra page indicates pagination bug
+		}
+	})
+	result, err := client.GetOrgInventory(context.Background()) // Execute inventory pagination flow
+	if err != nil {                                             // Expected to succeed across both pages
+		t.Fatalf("GetOrgInventory returned unexpected error: %v", err) // Report unexpected failure
+	}
+	want := defaultPageLimit + 2 // Rows from page1 + page2
+	if len(result) != want {     // Must include rows from both pages
+		t.Errorf("GetOrgInventory returned %d rows; want %d", len(result), want) // Report incorrect accumulation
+	}
+	if callCount != 2 { // Exactly two fetches expected
+		t.Errorf("inventory fetch called %d times; want 2", callCount) // Report unexpected paging depth
+	}
+}
+
+// TestGetOrgInventory_PageError verifies that inventory fetch errors propagate through operation boundary.
+func TestGetOrgInventory_PageError(t *testing.T) {
+	t.Parallel()                                 // Independent of other tests and uses only injected hooks
+	want := errors.New("inventory fetch failed") // Sentinel error used for error-chain assertion
+	client := testClientWithInventoryFn(func(_ context.Context, _ uuid.UUID, _ int, _ int, _ bool) ([]models.Inventory, error) {
+		return nil, want // Simulate transient/permanent API failure from fetcher
+	})
+	_, err := client.GetOrgInventory(context.Background()) // Execute and expect failure
+	if err == nil {                                       // Nil error would hide operation failure
+		t.Fatal("GetOrgInventory returned nil error for failing page fetch") // Fail fast on missing failure propagation
+	}
+	if !errors.Is(err, want) { // Error chain must preserve root cause for diagnostics
+		t.Errorf("GetOrgInventory error chain missing sentinel: %v", err) // Report wrapped error mismatch
 	}
 }
 

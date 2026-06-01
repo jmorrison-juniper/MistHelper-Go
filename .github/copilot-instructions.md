@@ -1,11 +1,8 @@
 # MistHelper-Go - AI Agent Instructions
 
-You are an elite autonomous software engineer with mastery in Go, architecture, algorithms, testing, and deployment simulation.
-Your mission: take my high-level request and independently deliver a complete, production-ready, and fully tested solution -- without requiring my intervention unless a critical ambiguity blocks progress.
+Global coding standards (autonomous workflow, 5-item rule, inline comments, action logging, quality gates) are in `coding-standards.instructions.md` and apply automatically. This file adds Go-specific and MistHelper-Go-specific guidance only.
 
 When refactoring code, avoid wrappers; restructure into proper packages and types as per project conventions.
-
-Global coding standards (autonomous workflow, 5-item rule, inline comments, action logging, quality gates) are in `%APPDATA%/Code/User/prompts/coding-standards.instructions.md` and apply automatically. This file adds Go-specific and MistHelper-Go-specific guidance only.
 
 ---
 
@@ -24,24 +21,10 @@ MistHelper-Go is a Go rewrite of [MistHelper](https://github.com/jmorrison-junip
 ## Core Architecture
 
 ### Go Project Hierarchy (5-Item Rule)
-Go project hierarchy levels from largest to smallest:
-1. **Project Root** -- top-level module folder
-2. **Packages / Directories** -- `cmd/`, `internal/`, `pkg/` (standard Go layout)
-3. **Source Files** -- individual `.go` files within packages
-4. **Types / Functions / Constants** -- top-level constructs in files
-5. **Methods / Fields / Expressions** -- struct methods and function bodies
+See `coding-standards.instructions.md` § Structural Discipline for limits (max 5 params, 5 blocks, 25 lines).
 
-**Enforce the 5-item rule**: each level should have no more than 5 children. If exceeded, refactor:
-- Too many files in a package: split into sub-packages
-- Too many types in a file: split into multiple files
-- Too many methods on a type: extract methods to smaller types or separate interfaces
-- Too many statements in a function: extract into smaller functions
-
-**Function Limits**:
-- **Max 5 parameters** per function. If more are needed, use an options struct or split into multiple functions
-- **Max 5 logical blocks** per function body (if/else = 1 block, for loop = 1 block). 
-- **Max 5 operations** per statement block. Break complex expressions into intermediate variables
-- **Max 25 lines** per function (5 blocks x ~5 lines). Extract logical sections into smaller or seperate functions
+Go hierarchy levels:
+1. **Project Root** → 2. **Packages / Directories** (`cmd/`, `internal/`, `pkg/`) → 3. **Source Files** → 4. **Types / Functions / Constants** → 5. **Methods / Fields / Expressions**
 
 ### Project Structure
 ```
@@ -242,14 +225,7 @@ if err != nil || confirmation != "UPGRADE" {                         // Validate
 ```
 
 ### Inline Comments (NON-NEGOTIABLE)
-Every line of AI-generated code MUST have an inline comment on the same line explaining what it does and why. This is not optional. Junior NOC engineers maintain this codebase -- every line must be self-explanatory.
-
-**Rules**:
-- Every executable line gets an inline comment (same line, after code).
-- Comments explain *why* and *what for*, not just *what* (no restating the code).
-- Blank lines, closing braces, and package/import declarations are exempt.
-- If existing code is being modified, add inline comments to the changed lines AND to any adjacent uncommented lines in the same block.
-- If existing code is found lacking inline comments during any edit, add them to the entire function or block being touched.
+See `coding-standards.instructions.md` § Inline Comments for full rules. Go example:
 
 ```go
 result, err := client.ListOrgSites(ctx, orgID)  // Fetch all sites for this org from Mist API
@@ -259,14 +235,7 @@ if err != nil {                                   // API call may fail on auth o
 ```
 
 ### Action Logging (NON-NEGOTIABLE)
-Every meaningful action MUST have a logging statement BEFORE and AFTER execution. This enables operators to trace exactly what happened during any run.
-
-**Rules**:
-- Log an info message BEFORE every action (API call, file write, database operation, data transformation, user prompt).
-- Log a debug message AFTER every action with the result summary (count, status, size -- never secrets).
-- Log error with full context on any error.
-- If existing code is found lacking action logging during any edit, add logging to the entire function or block being touched.
-- Use structured logging with `log/slog` (Go 1.21+) for machine-parseable output.
+See `coding-standards.instructions.md` § Action Logging for full rules. Go example:
 
 ```go
 slog.Info("Fetching device list", "site_id", siteID)
@@ -279,11 +248,8 @@ slog.Debug("Received devices from API", "count", len(result))
 ```
 
 ### Logging Standards
+See `coding-standards.instructions.md` § Logging Standards.
 - Use `log/slog` (standard library, Go 1.21+) for structured logging
-- **Debug**: Internal state changes, API responses
-- **Info**: User-facing progress messages
-- **Error**: Error context with full detail
-- **Never log secrets**: Redact tokens/passwords at the logging boundary
 - **ASCII Only**: No Unicode/emoji in log output for cross-platform compatibility
 
 ### Error Handling
@@ -346,52 +312,16 @@ Zscaler blocks `podman push` to `ghcr.io`. **Never push locally behind Zscaler.*
 ## Menu System & Operations
 
 ### Menu Categories (Full Range: 1-193)
-**Safe Org Exports (1-59)**:
-- 1-7: Sites and analysis
-- 8-14: Device inventory
-- 15-19: Device stats
-- 20-26: Events and logs
-- 27-30: Client stats
-- 31-36: Gateway operations
-- 37-41: Templates
-- 42-50: Config and admin
-- 51-55: SLE and insights
-- 56-59: Misc exports
 
-**Interactive Safe (60-96)**:
-- 60-72: Site devices
-- 73-79: Site insights
-- 80-91: Site stats
-- 92-96: Viewers
-
-**Resource Intensive (97-101, 153)**:
-- 97-101: Long-running operations
-- 153: Bulk operations
-
-**WebSocket (102-123)**:
-- 102-115: Show commands (wireless, switches, gateways)
-- 116-123: Diagnostics
-
-**Interactive (124-150)**:
-- 124-127: Device diagnostics
-- 128-133: Device management
-- 134-135: Packet captures (site-level, org-level with switch support)
-- 136-147: Tools
-- 148-150: Config management
-
-**Continuous (151-152)**:
-- 151-152: Continuous monitoring loops
-
-**Destructive Operations (154-193)** -- NEVER automate without explicit user confirmation:
-- 154-157: Firmware upgrades
-- 158-160: AP reboots
-- 161-162: VC conversion (virtual chassis operations)
-- 163-167: Template operations
-- 168-170: Site config operations
-- 171-174: Test data operations
-- 175-176: SSH runners (device command execution)
-- 177-187: Clear/reset operations
-- 188-193: Support ticket operations
+| Range | Category | Notes |
+| - | - | - |
+| 1-59 | Safe Org Exports | Sites (1-7), Inventory (8-14), Device stats (15-19), Events (20-26), Clients (27-30), Gateways (31-36), Templates (37-41), Config/Admin (42-50), SLE (51-55), Misc (56-59) |
+| 60-96 | Interactive Safe | Site devices (60-72), Insights (73-79), Stats (80-91), Viewers (92-96) |
+| 97-101, 153 | Resource Intensive | Long-running operations, bulk operations |
+| 102-123 | WebSocket | Show commands (102-115), Diagnostics (116-123) |
+| 124-150 | Interactive | Diagnostics (124-127), Management (128-133), Packet captures (134-135), Tools (136-147), Config (148-150) |
+| 151-152 | Continuous | Monitoring loops |
+| 154-193 | **Destructive** | Firmware (154-157), Reboots (158-160), VC (161-162), Templates (163-167), Site config (168-170), Test data (171-174), SSH runners (175-176), Clear/reset (177-187), Support tickets (188-193). **NEVER automate without explicit user confirmation.** |
 
 ### Interactive vs Direct Invocation
 - **Interactive**: No args = menu-driven selection with safe navigation
@@ -425,9 +355,7 @@ defer cancel()                                                    // Ensure reso
 
 ## Project-Specific Conventions
 
-### Naming Standards
-- **No abbreviations**: `for _, device := range devices` NOT `for _, d := range devices`
-- **No AI markers**: Never use `...existing code...` or double ellipses
+See `coding-standards.instructions.md` for naming standards and code readability rules.
 - **Package-scoped**: All features organized in semantically named packages under `internal/`
 - **Exported vs unexported**: Only export what other packages need. Start with unexported, promote as needed.
 
@@ -449,20 +377,12 @@ defer cancel()                                                    // Ensure reso
 
 ---
 
----
-
 ## Multi-Agent Git Workflow
 
-Global workflow rules are defined in
-`%APPDATA%/Code/User/prompts/coding-standards.instructions.md`.
-This section adds MistHelper-Go-specific enforcement.
+Global workflow rules are in `git-workflow.instructions.md` (applied via `applyTo: "**"`).
+This section adds MistHelper-Go-specific overrides only.
 
-### Issue-First Development
-
-Every code change starts with an issue. No branch without an issue.
-
-When any error is detected during development (lint, test, type, runtime, security, CI),
-create a GitHub issue **before** attempting a fix:
+### MistHelper-Go-Specific Error-to-Issue Triggers
 
 | Trigger | Label(s) | Issue Title Pattern |
 |---------|----------|---------------------|
@@ -473,43 +393,6 @@ create a GitHub issue **before** attempting a fix:
 | Security finding | `security` | `Security: <tool> -- <finding>` |
 | CI pipeline failure | `ci` | `CI: <workflow> -- <failure>` |
 
-Use `gh issue create --title "..." --label "..." --body "..."` to create issues
-programmatically. Include the full error output in the issue body for traceability.
-
-### Branch Strategy (No Stacking)
-
-```
-main (always deployable)
-  |-- fix/<issue-number>-<slug>      # bug fixes
-  |-- feat/<issue-number>-<slug>     # features
-  |-- chore/<issue-number>-<slug>    # maintenance / lint / docs
-```
-
-**Critical rules**:
-- Every branch targets `main` directly. Never branch from another feature branch.
-- Branch name must include the issue number: `fix/42-clear-session`.
-- One branch per issue. One PR per branch. One concern per PR.
-- Keep branches short-lived: merge or close within days, not weeks.
-
-### Commit Messages
-
-Use Conventional Commits format:
-```
-<type>(<scope>): <description>
-
-Closes #<issue-number>
-```
-Types: `fix`, `feat`, `chore`, `refactor`, `test`, `docs`, `ci`.
-Include `Closes #N` in the body so the issue auto-closes on merge.
-
-### Merge Strategy
-
-- **Squash merge** to `main` (one clean commit per PR).
-- **Rebase before merging** if the branch is behind `main`.
-- **Delete branch** after merge (automatic via GitHub settings).
-- **`Closes #N` in PR body** -- squash merge only reads the PR body for auto-close keywords.
-- **Never force-push** to a shared branch or `main`.
-
 ### Required Labels
 
 Every issue and PR MUST have at least:
@@ -517,25 +400,13 @@ Every issue and PR MUST have at least:
 2. A **scope** label: `api`, `menu`, `output`, `ssh`, `web`, `tests`, `ci`, `container`, `docs`
 3. A **status** label when in progress: `in-progress`
 
-### Fleet Coordination (Multi-Agent)
+### Fleet Coordination (MistHelper-Go-Specific)
 
-When multiple AI agents work on MistHelper-Go simultaneously:
+See `git-workflow.instructions.md` § Agent Coordination for general rules. MistHelper-Go additions:
 
-1. **Claim before starting**: Assign the issue to yourself and add `in-progress` label
-   before creating a branch. If already claimed, pick a different issue.
-2. **Check for file overlap**: Run
-   `gh pr list --json files --jq '.[].files[].path'`
-   to see what files other open PRs touch. Avoid overlapping files.
-3. **Rebase frequently**: If your PR takes more than one session,
-   `git rebase main` before pushing updates.
-4. **Auto-merge label**: Add `auto-merge` label only after all CI checks pass,
-   **including CodeQL** (takes 2-3 minutes). Use `gh pr checks <pr> --watch` to confirm.
+- **Auto-merge label**: Wait for **CodeQL** (~2-3 min) before adding. Use `gh pr checks <pr> --watch`.
 
-### Agent Isolation (One Agent = One Worktree = One Branch = One PR)
-
-Every concurrent AI agent MUST operate in its own isolated worktree.
-
-**The isolation rule**: One agent, one worktree, one branch, one PR, one concern.
+### Agent Worktree Examples
 
 ```
 MistHelper-Go/                     # main checkout (human or merge agent only)
@@ -543,40 +414,9 @@ MistHelper-Go/                     # main checkout (human or merge agent only)
 ../MistHelper-Go-agent-2/          # worktree for Agent 2 (fix/102-rate-limit)
 ```
 
-**Setup per agent**:
-```powershell
-git worktree add ../MistHelper-Go-agent-1 -b feat/101-new-menu main
-cd ../MistHelper-Go-agent-1
-```
+### Windows Branch Switching & Post-Merge Fix Timing
 
-**Teardown after merge**:
-```powershell
-cd ../MistHelper-Go
-git worktree remove ../MistHelper-Go-agent-1
-git branch -D feat/101-new-menu
-git pull origin main
-```
-
-### Windows Branch Switching (File Locking)
-
-VS Code and OneDrive hold file locks that block `git checkout` on Windows.
-**Preferred approach**: Use git worktrees instead of switching branches.
-
-**Fallback** (if worktrees are not practical):
-```powershell
-Get-Process git -ErrorAction SilentlyContinue | Stop-Process -Force
-Remove-Item .git/index.lock -ErrorAction SilentlyContinue
-git checkout main
-```
-
-### Post-Merge Fix Timing
-
-**Never push to a branch after its PR has been squash-merged.**
-If a fix is needed after merge:
-1. Pull `main` to get the squash-merged commit.
-2. Create a **new issue** for the fix.
-3. Create a **new branch** from `main`.
-4. Fix, push, and open a **new PR**.
+See `git-workflow.instructions.md` § Windows Branch Switching and § Post-Merge Fix Timing.
 
 ### NEVER Do These
 
@@ -598,6 +438,12 @@ If a fix is needed after merge:
 
 ---
 
+## Copilot Token Efficiency
+
+See `copilot-token-efficiency.instructions.md` (applied globally via `applyTo: "**"`).
+
+---
+
 ## Quality Gates (CI Must Pass Before Merge)
 
 | Gate | Tool | What It Checks |
@@ -613,11 +459,8 @@ If a fix is needed after merge:
 
 ### Security Findings: Fix Over Suppress
 
-Security tool findings (gosec, govulncheck, CodeQL) must be **resolved**, not suppressed:
-
-1. **Fix the root cause** -- Rewrite code to eliminate the vulnerability.
-2. **Refactor to avoid the pattern** -- Restructure so the flagged pattern isn't needed.
-3. **`//nolint` only for verified false positives** -- The annotation MUST include a justification comment.
+See `coding-standards.instructions.md` § Security Findings. Project-specific tools: gosec, govulncheck, CodeQL.
+Use `//nolint` only for verified false positives with a justification comment.
 
 ### Delivery Artifacts (Per Release Tag)
 
@@ -627,21 +470,12 @@ Security tool findings (gosec, govulncheck, CodeQL) must be **resolved**, not su
 
 ## Complexity-Driven SpecKit Escalation
 
-Not every task needs full ceremony. Use this decision tree:
+See `git-workflow.instructions.md` § SpecKit Escalation for the full decision tree.
 
-**Implement directly** (no spec needed):
-- Single-file edits with obvious intent (typo, log message, config value)
-- Lint fixes with auto-fix available
-- Documentation-only changes
-- Adding a test for existing, well-understood behavior
-
-**Escalate to SpecKit** (spec required before coding):
+**MistHelper-Go-specific escalation triggers**:
 - Changes touching 3+ files or 2+ packages
 - New menu operations or API integrations
-- Architectural changes (new packages, interface changes, data flow changes)
-- Bug fixes where root cause is unclear or spans multiple packages
 - Any change to destructive operations (menu 90-100)
-- Performance or concurrency work
 - Database schema or primary key strategy changes
 
 ---
@@ -649,6 +483,6 @@ Not every task needs full ceremony. Use this decision tree:
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/002-ssh-wish-migration/plan.md
+at specs/003-org-inventory-port/plan.md
 <!-- SPECKIT END -->
 

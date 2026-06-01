@@ -41,6 +41,12 @@ var Strategies = map[string]EndpointStrategy{
 		Indexes:     []string{"site_id", "mac", "type", "model"}, // Frequently filtered columns
 		Description: "Organisation device inventory -- one row per device UUID",
 	},
+	"getOrgInventory": {
+		Type:        PKTypeNatural,                 // Stable inventory device UUID from Mist API
+		PrimaryKey:  []string{"id"},               // Inventory row identity is device UUID
+		Indexes:     []string{"site_id", "mac", "type", "model"}, // Common filter columns for inventory queries
+		Description: "Organisation inventory export -- one row per device UUID",
+	},
 	"listOrgWlans": {
 		Type:        PKTypeNatural,                  // Stable WLAN UUID from Mist API
 		PrimaryKey:  []string{"id"},                // WLAN UUID PK
