@@ -311,7 +311,7 @@ Zscaler blocks `podman push` to `ghcr.io`. **Never push locally behind Zscaler.*
 
 ## Menu System & Operations
 
-### Menu Categories (Full Range: 1-193)
+### Menu Categories (Full Range: 1-193 ported; Python source now extends to 194)
 
 | Range | Category | Notes |
 | - | - | - |
@@ -321,7 +321,7 @@ Zscaler blocks `podman push` to `ghcr.io`. **Never push locally behind Zscaler.*
 | 102-123 | WebSocket | Show commands (102-115), Diagnostics (116-123) |
 | 124-150 | Interactive | Diagnostics (124-127), Management (128-133), Packet captures (134-135), Tools (136-147), Config (148-150) |
 | 151-152 | Continuous | Monitoring loops |
-| 154-193 | **Destructive** | Firmware (154-157), Reboots (158-160), VC (161-162), Templates (163-167), Site config (168-170), Test data (171-174), SSH runners (175-176), Clear/reset (177-187), Support tickets (188-193). **NEVER automate without explicit user confirmation.** |
+| 154-193 | **Destructive** | Firmware (154-157), Reboots (158-160), VC (161-162), Templates (163-167), Site config (168-170), Test data (171-174), SSH runners (175-176), Clear/reset (177-187), Support tickets (188-193). Python adds Menu 194 Clone Device Config to Gateway Template (not yet ported). **NEVER automate without explicit user confirmation.** |
 
 ### Interactive vs Direct Invocation
 - **Interactive**: No args = menu-driven selection with safe navigation
