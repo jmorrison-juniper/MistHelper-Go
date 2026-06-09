@@ -8,7 +8,7 @@ require (
 	github.com/tmunzer/mistapi-go v0.4.103
 	golang.org/x/crypto v0.52.0
 	golang.org/x/term v0.43.0
-	modernc.org/sqlite v1.50.1
+	modernc.org/sqlite v1.51.0
 )
 
 require (
