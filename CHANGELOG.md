@@ -17,14 +17,18 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 - CI: `govulncheck` runs again; `govulncheck@latest` needs Go 1.26 or later (#38)
 - Copilot: the setup steps file moves to `.github/workflows/copilot-setup-steps.yml`, the only path that GitHub reads, and sets Go 1.27.1 instead of 1.21
+- CI: the Copilot assign workflows never assigned the agent. GitHub assigns the Copilot cloud agent only for a user token, and misthelper-devtools v0.2.0 sent the request with `GITHUB_TOKEN`. With v0.3.0, both workflows pass the `COPILOT_ASSIGN_TOKEN` secret, and without it they write a comment on the issue with the cause
 
 ### Changed
 
 - Deps: `modernc.org/sqlite` v1.52.0 → v1.59.0 (#43)
 - Deps: `github.com/tmunzer/mistapi-go` v0.4.103 → v0.4.108; `GetOrgInventory` takes a new `disconnectedBefore` filter, and the inventory export leaves it unset, so the export still returns every device (#44)
-- CI: the quality-gate issue, auto-merge, linked-issue close, container build, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.2.0, pinned by commit SHA
+- CI: the quality-gate issue, auto-merge, linked-issue close, container build, release image, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.3.0, pinned by commit SHA
 - CI: after an auto-merge, `ci.yml`, `codeql.yml`, and `container-build.yml` start with `workflow_dispatch`, because a merge by `GITHUB_TOKEN` starts no push run
-- CI: a checkbox issue now gets the Copilot Coding Agent assigned in the same run that adds the `copilot` label
+- CI: a checkbox issue now gets the Copilot Coding Agent assigned in the same run that adds the `copilot` label, when the `COPILOT_ASSIGN_TOKEN` secret is set
+- CI: `copilot-auto-assign.yml` starts only by hand; the labeled trigger started a run for every label on every issue, and almost every run skipped
+- Release: the release image gets the OCI labels from the shared workflow; the tags stay the version without the `v` and `latest`
+- Deps: Dependabot checks the `Containerfile` base images each week
 
 ## [26.05.22.00.00] - 2026-05-22
 
