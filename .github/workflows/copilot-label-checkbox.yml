@@ -1,7 +1,9 @@
 # Copilot Label from Issue Checkbox
 # When a new issue is created with the "Assign to Copilot Coding Agent" checkbox
-# checked, this workflow automatically adds the 'copilot' label -- which in turn
-# triggers copilot-auto-assign.yml to assign the agent.
+# checked, the shared workflow in misthelper-devtools adds the 'copilot' label
+# and assigns the Copilot Coding Agent in the same run. A label that
+# GITHUB_TOKEN adds starts no labeled workflow, so copilot-auto-assign.yml
+# cannot do the assignment for a checkbox issue.
 
 name: Copilot Label from Checkbox
 
@@ -9,31 +11,14 @@ on:
   issues:
     types: [opened]
 
-permissions:
-  issues: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+permissions: {}
 
 jobs:
   check-copilot-checkbox:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Add copilot label if checkbox is checked
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const body = context.payload.issue.body || '';
-            const pattern = /\[x\]\s*Assign to Copilot Coding Agent/i;
-
-            if (pattern.test(body)) {
-              console.log('Copilot checkbox detected -- adding label');
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                labels: ['copilot']
-              });
-            } else {
-              console.log('Copilot checkbox not checked -- skipping');
-            }
+    permissions:
+      issues: write
+    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-copilot-assign.yml@ca3659400847c35f5dac438c37fc5055c020910e # v0.2.0
+    with:
+      issue-number: ${{ github.event.issue.number }}
+      require-checkbox: true
+      add-copilot-label: true

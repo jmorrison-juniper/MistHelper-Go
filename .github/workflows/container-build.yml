@@ -18,9 +18,10 @@ on:
         required: false
         default: ''
 
+permissions:
+  contents: read
+
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
@@ -64,74 +65,19 @@ jobs:
       - name: Run tests
         run: go test ./... -race -cover -v
 
-  # Third job: Build and push container (only if tests pass)
+  # Third job: Build and push container (only if tests pass). The shared
+  # workflow in misthelper-devtools builds the image with Buildx, pushes it to
+  # ghcr.io/<owner>/<repo>, and tags it with the version and latest. The
+  # version is YY.MM.DD.HH.MM in UTC unless version_override is set.
   build-and-push:
     needs: [validate, test]
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Generate version tag
-        id: version
-        run: |
-          if [ -n "${{ github.event.inputs.version_override }}" ]; then
-            VERSION="${{ github.event.inputs.version_override }}"
-          else
-            VERSION=$(date -u +"%y.%m.%d.%H.%M")
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Generated version: $VERSION"
-
-      - name: Set up QEMU for multi-arch builds
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=latest
-
-      - name: Build and push container image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./Containerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Summary
-        run: |
-          echo "## Container Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Images:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Pull command:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "podman pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-container-image.yml@ca3659400847c35f5dac438c37fc5055c020910e # v0.2.0
+    with:
+      file: ./Containerfile
+      tags: |
+        type=raw,value=latest
+      version-tag: true
+      version: ${{ github.event.inputs.version_override }}
