@@ -2,8 +2,12 @@
 # When a new issue is created with the "Assign to Copilot Coding Agent" checkbox
 # checked, the shared workflow in misthelper-devtools adds the 'copilot' label
 # and assigns the Copilot Coding Agent in the same run. A label that
-# GITHUB_TOKEN adds starts no labeled workflow, so copilot-auto-assign.yml
-# cannot do the assignment for a checkbox issue.
+# GITHUB_TOKEN adds starts no labeled workflow, so a second workflow cannot do
+# the assignment for a checkbox issue.
+#
+# The assignment needs the COPILOT_ASSIGN_TOKEN repository secret. See
+# copilot-auto-assign.yml for the prerequisites. Without the secret, the shared
+# workflow writes one comment on the issue that tells how to set it up.
 
 name: Copilot Label from Checkbox
 
@@ -17,8 +21,10 @@ jobs:
   check-copilot-checkbox:
     permissions:
       issues: write
-    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-copilot-assign.yml@ca3659400847c35f5dac438c37fc5055c020910e # v0.2.0
+    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-copilot-assign.yml@e0bcb680817721a41d3add1dfb7498afeadb6503 # v0.3.0
     with:
       issue-number: ${{ github.event.issue.number }}
       require-checkbox: true
       add-copilot-label: true
+    secrets:
+      assign-token: ${{ secrets.COPILOT_ASSIGN_TOKEN }}

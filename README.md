@@ -71,9 +71,12 @@ The shared CI workflows live in [misthelper-devtools](https://github.com/jmorris
 | `auto-merge.yml` | `reusable-auto-merge.yml` |
 | `close-linked-issues.yml` | `reusable-close-linked-issues.yml` |
 | `container-build.yml` (build-and-push job) | `reusable-container-image.yml` |
+| `release.yml` (build-container job) | `reusable-container-image.yml` |
 | `copilot-label-checkbox.yml`, `copilot-auto-assign.yml` | `reusable-copilot-assign.yml` |
 
 A merge by the auto-merge label uses `GITHUB_TOKEN`, so it starts no push run on `main`. The auto-merge workflow then starts `ci.yml`, `codeql.yml`, and `container-build.yml` with a `workflow_dispatch` call.
+
+The Copilot workflows need the `COPILOT_ASSIGN_TOKEN` repository secret. GitHub assigns the Copilot cloud agent only for a user token, so `GITHUB_TOKEN` cannot do it. Use a fine-grained token with read access to metadata, and read and write access to actions, contents, issues, and pull requests. The token user must have the Copilot cloud agent enabled for this repository. Without the secret, the workflow writes a comment on the issue with the cause. To give an issue that already exists to the agent, run `copilot-auto-assign.yml` by hand with the issue number.
 
 ## License
 

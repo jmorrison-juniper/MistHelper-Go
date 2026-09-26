@@ -1,36 +1,43 @@
-# Copilot Coding Agent -- Auto-Assign on Label
-# When a person adds the 'copilot' label to an issue, the shared workflow in
-# misthelper-devtools assigns the Copilot Coding Agent to implement it. The
-# agent reads .github/copilot-instructions.md for project conventions, creates
-# a branch, implements the solution, and opens a PR. A maintainer can also
-# start this workflow by hand for one issue.
+# Copilot Coding Agent -- Auto-Assign by Hand
+# A maintainer starts this workflow by hand and names an issue. The shared
+# workflow in misthelper-devtools assigns the Copilot Coding Agent to the
+# issue. The agent reads .github/copilot-instructions.md for project
+# conventions, creates a branch, implements the solution, and opens a PR.
 #
 # Prerequisites:
-#   - Copilot Business/Enterprise seat on the repository owner account
-#   - Copilot Coding Agent policy enabled in org/account settings
-#   - 'copilot' label exists in the repository
+#   - The token user has a Copilot plan that includes the Copilot cloud agent,
+#     and the agent is enabled for this repository
+#   - The COPILOT_ASSIGN_TOKEN repository secret holds a user token for that
+#     user. GitHub assigns the agent only for a user token; GITHUB_TOKEN
+#     cannot do it. A fine-grained token needs read access to metadata, and
+#     read and write access to actions, contents, issues, and pull requests.
 #
-# If the Copilot seat is not yet configured, the workflow posts a comment instead
-# of failing silently.
+# When the agent is not assigned, the shared workflow writes one comment on
+# the issue with the cause and does not add the in-progress label.
 
 name: Copilot Auto-Assign
 
 on:
-  issues:
-    types: [labeled]
+  # WHY this workflow does not start on a labeled event: the label event fires
+  # for every label on every issue, and GitHub cannot filter a label name at
+  # the trigger, so almost every run skipped. MistHelper removed the same
+  # trigger for this reason. The checkbox workflow assigns the agent when an
+  # issue opens. For an issue that already exists, start this workflow by hand.
   workflow_dispatch:
     inputs:
       issue_number:
-        description: The number of the issue to assign to the Copilot Coding Agent
+        description: The number of the issue that the agent must take
         required: true
+        type: string
 
 permissions: {}
 
 jobs:
   assign-copilot:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'copilot'
     permissions:
       issues: write
-    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-copilot-assign.yml@ca3659400847c35f5dac438c37fc5055c020910e # v0.2.0
+    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-copilot-assign.yml@e0bcb680817721a41d3add1dfb7498afeadb6503 # v0.3.0
     with:
-      issue-number: ${{ github.event.issue.number || github.event.inputs.issue_number }}
+      issue-number: ${{ inputs.issue_number }}
+    secrets:
+      assign-token: ${{ secrets.COPILOT_ASSIGN_TOKEN }}
