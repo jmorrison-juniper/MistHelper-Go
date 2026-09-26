@@ -21,7 +21,7 @@ MistHelper-Go **trails** the [Python MistHelper](https://github.com/jmorrison-ju
 
 ## Requirements (Development Only)
 
-- Go 1.21+
+- Go 1.26+ (`go.mod` sets the minimum; CI and the container build use Go 1.27)
 - Juniper Mist API token (set in `.env`)
 
 MistHelper-Go is designed to run exclusively from a container in production. Direct binary execution is for local development only.

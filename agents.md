@@ -51,7 +51,7 @@ git checkout main && git pull origin main
 ## Key Conventions (Quick Reminders)
 
 - **Target audience**: Junior NOC engineers. Clear language, no jargon.
-- **Go 1.21+**, **mistapi-go v0.4.73+**, **godotenv v1.5.1**
+- **Go 1.26+** (the `go.mod` minimum), **mistapi-go v0.4.73+**, **godotenv v1.5.1**
 - **5-Item Rule**: Max 5 children per hierarchy level, max 5 params, max 25 lines per function
 - **safeInput()**: Wrap all stdin reads for EOF handling in SSH/container contexts
 - **Natural business keys**: Define PK strategy in endpoint strategies map for new operations

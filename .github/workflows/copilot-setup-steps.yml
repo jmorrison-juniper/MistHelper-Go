@@ -1,0 +1,47 @@
+# Copilot Coding Agent -- Environment Setup
+# GitHub runs the copilot-setup-steps job before the Copilot Coding Agent
+# starts work on an issue. GitHub reads this file only at this path, and only
+# a job named copilot-setup-steps.
+#
+# A pull request that changes this file runs the job as a normal check. After
+# the merge, start the workflow by hand from the Actions tab to check it.
+#
+# Docs: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-environment
+
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+permissions: {}
+
+jobs:
+  # The job name must be copilot-setup-steps, or the agent ignores the job.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Keep this version the same as GO_VERSION in ci.yml.
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.1'
+
+      - name: Install Go tools
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Verify environment
+        run: |
+          go version
+          go build ./...
+          echo "Environment ready for Copilot Coding Agent"
