@@ -7,6 +7,17 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ## [Unreleased]
 
+### Security
+
+- Deps: `golang.org/x/crypto` v0.53.0 → v0.57.0 fixes three `x/crypto/ssh` advisories that the SSH server reaches (GO-2026-6303, GO-2026-6354, GO-2026-6355); `golang.org/x/term` v0.46.0 and `golang.org/x/sys` v0.48.0 follow
+- Build: the Go toolchain moves from 1.25.11, which is out of support, to 1.27.1 in CI and the container build stage; the runtime stage moves from `alpine:3.19` (end of life) to `alpine:3.24`
+- `go.mod` now sets `go 1.26.0`, the minimum that `golang.org/x/crypto` v0.57.0 needs
+
+### Fixed
+
+- CI: `govulncheck` runs again; `govulncheck@latest` needs Go 1.26 or later (#38)
+- Copilot: the setup steps file moves to `.github/workflows/copilot-setup-steps.yml`, the only path that GitHub reads, and sets Go 1.27.1 instead of 1.21
+
 ### Changed
 
 - CI: the quality-gate issue, auto-merge, linked-issue close, container build, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.2.0, pinned by commit SHA

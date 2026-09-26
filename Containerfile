@@ -5,7 +5,7 @@
 # ============================================================
 
 # ── Build Stage ──────────────────────────────────────────────
-FROM docker.io/library/golang:1.25-alpine AS builder
+FROM docker.io/library/golang:1.27-alpine AS builder
 
 WORKDIR /build
 
@@ -24,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     ./cmd/misthelper/
 
 # ── Runtime Stage ────────────────────────────────────────────
-FROM docker.io/library/alpine:3.19
+FROM docker.io/library/alpine:3.24
 
 # Install minimal runtime dependencies (no sshd — Go binary is the SSH server)
 RUN apk add --no-cache \

@@ -294,7 +294,7 @@ FAST_MODE_MAX_CONCURRENT_CONNECTIONS=8  # Environment tunable
 
 ### Container Registry & CI/CD
 - **Registry**: `ghcr.io/jmorrison-juniper/misthelper-go`
-- **Build**: Multi-stage Containerfile (build stage with `golang:1.25-alpine`, runtime stage with `alpine`)
+- **Build**: Multi-stage Containerfile (build stage with `golang:1.27-alpine`, runtime stage with `alpine:3.24`)
 - **Version Format**: `YY.MM.DD.HH.MM` (UTC timestamp -- consistent with changelog)
 - **Triggers**: Push to `main` (when key files change) or manual workflow dispatch
 
