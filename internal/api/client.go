@@ -74,6 +74,7 @@ func (c *Client) fetchInventoryPageFromSDK(ctx context.Context, orgID uuid.UUID,
 		&includeVC,  // include VC member devices to match Python MistHelper behavior
 		nil,         // unassigned filter disabled for full inventory export
 		nil,         // modified-after filter disabled for full inventory export
+		nil,         // disconnected-before filter disabled for full inventory export
 		&limit,      // page size limit for deterministic pagination behavior
 		&page,       // page number for iterative retrieval
 	)
