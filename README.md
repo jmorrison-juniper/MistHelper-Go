@@ -61,6 +61,20 @@ data/               # Runtime output directory
 specs/              # SpecKit feature specs
 ```
 
+## CI Tooling
+
+The shared CI workflows live in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools). Each caller pins a devtools release commit, and a comment names the release tag.
+
+| Workflow here | Shared workflow |
+| --- | --- |
+| `ci.yml` (quality-gate issues job) | `reusable-quality-gate-issues.yml` |
+| `auto-merge.yml` | `reusable-auto-merge.yml` |
+| `close-linked-issues.yml` | `reusable-close-linked-issues.yml` |
+| `container-build.yml` (build-and-push job) | `reusable-container-image.yml` |
+| `copilot-label-checkbox.yml`, `copilot-auto-assign.yml` | `reusable-copilot-assign.yml` |
+
+A merge by the auto-merge label uses `GITHUB_TOKEN`, so it starts no push run on `main`. The auto-merge workflow then starts `ci.yml`, `codeql.yml`, and `container-build.yml` with a `workflow_dispatch` call.
+
 ## License
 
 Apache 2.0

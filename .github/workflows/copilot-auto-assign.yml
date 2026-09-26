@@ -1,7 +1,9 @@
 # Copilot Coding Agent -- Auto-Assign on Label
-# When an issue receives the 'copilot' label, this workflow automatically assigns
-# the Copilot Coding Agent to implement it. The agent reads .github/copilot-instructions.md
-# for project conventions, creates a branch, implements the solution, and opens a PR.
+# When a person adds the 'copilot' label to an issue, the shared workflow in
+# misthelper-devtools assigns the Copilot Coding Agent to implement it. The
+# agent reads .github/copilot-instructions.md for project conventions, creates
+# a branch, implements the solution, and opens a PR. A maintainer can also
+# start this workflow by hand for one issue.
 #
 # Prerequisites:
 #   - Copilot Business/Enterprise seat on the repository owner account
@@ -16,59 +18,19 @@ name: Copilot Auto-Assign
 on:
   issues:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: The number of the issue to assign to the Copilot Coding Agent
+        required: true
 
-permissions:
-  issues: write
-  contents: read
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+permissions: {}
 
 jobs:
   assign-copilot:
-    if: github.event.label.name == 'copilot'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Assign Copilot to issue
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const issueNumber = context.issue.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            try {
-              await github.rest.issues.addAssignees({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                assignees: ['copilot']
-              });
-              console.log(`Assigned Copilot to issue #${issueNumber}`);
-
-              await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                labels: ['in-progress']
-              });
-            } catch (error) {
-              console.log(`Could not assign Copilot: ${error.message}`);
-
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: issueNumber,
-                body: [
-                  '**Copilot Coding Agent could not be assigned.**',
-                  '',
-                  'This usually means one of:',
-                  '- The repository owner account does not have a Copilot Business/Enterprise seat',
-                  '- The Copilot Coding Agent policy is not enabled in org/account settings',
-                  '',
-                  'To implement manually: open VS Code and ask Copilot Chat to work this issue.',
-                  '',
-                  `Error: \`${error.message}\``
-                ].join('\n')
-              });
-            }
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'copilot'
+    permissions:
+      issues: write
+    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-copilot-assign.yml@ca3659400847c35f5dac438c37fc5055c020910e # v0.2.0
+    with:
+      issue-number: ${{ github.event.issue.number || github.event.inputs.issue_number }}

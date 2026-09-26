@@ -7,6 +7,12 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ## [Unreleased]
 
+### Changed
+
+- CI: the quality-gate issue, auto-merge, linked-issue close, container build, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.2.0, pinned by commit SHA
+- CI: after an auto-merge, `ci.yml`, `codeql.yml`, and `container-build.yml` start with `workflow_dispatch`, because a merge by `GITHUB_TOKEN` starts no push run
+- CI: a checkbox issue now gets the Copilot Coding Agent assigned in the same run that adds the `copilot` label
+
 ## [26.05.22.00.00] - 2026-05-22
 
 ### Added
