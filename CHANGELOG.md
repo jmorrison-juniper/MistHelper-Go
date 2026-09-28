@@ -24,7 +24,7 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 - Deps: `modernc.org/sqlite` v1.52.0 → v1.59.0 (#43)
 - Deps: `github.com/tmunzer/mistapi-go` v0.4.103 → v0.4.108; `GetOrgInventory` takes a new `disconnectedBefore` filter, and the inventory export leaves it unset, so the export still returns every device (#44)
 - CI: the quality-gate issue, auto-merge, linked-issue close, container build, release image, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.4.0, pinned by commit SHA
-- Deps: Dependabot takes only major updates of `github/codeql-action`, so `codeql.yml` keeps the floating `v4` tag; PR #28 replaced that tag with an exact version
+- CI: `codeql.yml` calls the shared CodeQL workflow in misthelper-devtools, which keeps the floating `v4` tag of `github/codeql-action`; PR #28 replaced that tag with an exact version. The analysis key stays `.github/workflows/codeql.yml:analyze`, so code scanning keeps its alerts, and the check name becomes `codeql / Analyze (go)`
 - CI: after an auto-merge, `ci.yml`, `codeql.yml`, and `container-build.yml` start with `workflow_dispatch`, because a merge by `GITHUB_TOKEN` starts no push run
 - CI: a checkbox issue now gets the Copilot Coding Agent assigned in the same run that adds the `copilot` label, when the `COPILOT_ASSIGN_TOKEN` secret is set
 - CI: `copilot-auto-assign.yml` starts only by hand; the labeled trigger started a run for every label on every issue, and almost every run skipped
