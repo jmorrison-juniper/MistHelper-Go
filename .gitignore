@@ -1,8 +1,9 @@
-# Binaries
-misthelper-go
-misthelper-go.exe
-misthelper
-misthelper.exe
+# Binaries. The leading slash matches only the build output at the repository
+# root, so new files under cmd/misthelper/ are not ignored.
+/misthelper-go
+/misthelper-go.exe
+/misthelper
+/misthelper.exe
 
 # Runtime data
 data/
