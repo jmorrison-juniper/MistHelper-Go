@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-container-image.yml@bf1ba8a29ee9bab27b721db6e613fd5cd83d82fa # v0.4.0
+    uses: jmorrison-juniper/misthelper-devtools/.github/workflows/reusable-container-image.yml@0936f174d26c82cb0a8ef0e6239fbabf2bf2fa25 # v0.5.0
     with:
       file: ./Containerfile
       tags: |
