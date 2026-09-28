@@ -16,6 +16,7 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 ### Fixed
 
 - CI: `govulncheck` runs again; `govulncheck@latest` needs Go 1.26 or later (#38)
+- CI: the auto-merge dispatch no longer starts a second `ci.yml`, `codeql.yml`, or `container-build.yml` run on a tip that already has a run. The run list of GitHub can answer from old data, so misthelper-devtools v0.5.2 looks for a run on the tip commit itself (jmorrison-juniper/misthelper-devtools#32)
 - Copilot: the setup steps file moves to `.github/workflows/copilot-setup-steps.yml`, the only path that GitHub reads, and sets Go 1.27.1 instead of 1.21
 - CI: the Copilot assign workflows never assigned the agent. GitHub assigns the Copilot cloud agent only for a user token, and misthelper-devtools v0.2.0 sent the request with `GITHUB_TOKEN`. With v0.3.0, both workflows pass the `COPILOT_ASSIGN_TOKEN` secret, and without it they write a comment on the issue with the cause
 
@@ -23,7 +24,7 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 - Deps: `modernc.org/sqlite` v1.52.0 → v1.59.0 (#43)
 - Deps: `github.com/tmunzer/mistapi-go` v0.4.103 → v0.4.108; `GetOrgInventory` takes a new `disconnectedBefore` filter, and the inventory export leaves it unset, so the export still returns every device (#44)
-- CI: the quality-gate issue, auto-merge, linked-issue close, container build, release image, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.5.1, pinned by commit SHA
+- CI: the quality-gate issue, auto-merge, linked-issue close, container build, release image, and Copilot assign workflows call the shared workflows in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.5.2, pinned by commit SHA
 - CI: `codeql.yml` calls the shared CodeQL workflow in misthelper-devtools, which keeps the floating `v4` tag of `github/codeql-action`; PR #28 replaced that tag with an exact version. The analysis key stays `.github/workflows/codeql.yml:analyze`, so code scanning keeps its alerts, and the check name becomes `codeql / Analyze (go)`
 - CI: after an auto-merge, `ci.yml`, `codeql.yml`, and `container-build.yml` start with `workflow_dispatch`, because a merge by `GITHUB_TOKEN` starts no push run
 - CI: a checkbox issue now gets the Copilot Coding Agent assigned in the same run that adds the `copilot` label, when the `COPILOT_ASSIGN_TOKEN` secret is set
