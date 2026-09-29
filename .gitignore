@@ -21,6 +21,10 @@ dist/
 .vscode/settings.json
 .idea/
 
+# Claude Code local settings and agent scratch. MistHelper ignores this folder
+# too, because a worktree in it was once committed as a broken gitlink.
+.claude/
+
 # Go
 vendor/
 
