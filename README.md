@@ -21,7 +21,7 @@ MistHelper-Go **trails** the [Python MistHelper](https://github.com/jmorrison-ju
 
 ## Requirements (Development Only)
 
-- Go 1.26+ (`go.mod` sets the minimum; CI and the container build use Go 1.27)
+- Go 1.26.8+ (`go.mod` sets the minimum; CI and the container build use Go 1.27.1)
 - Juniper Mist API token (set in `.env`)
 
 MistHelper-Go is designed to run exclusively from a container in production. Direct binary execution is for local development only.
@@ -62,6 +62,36 @@ specs/              # SpecKit feature specs
 ```
 
 ## CI Tooling
+
+### Offline tests
+
+Tests need no Mist token, `.env` file, or cloud account. The harness uses fake
+HTTP responses for the Mist SDK, local files for CSV and SQLite, and loopback
+connections for SSH and web tests. It covers pagination, request errors, input
+EOF, cancelled requests, output records, and failed authentication.
+
+```bash
+go mod download
+go mod verify
+go vet ./...
+go build ./...
+go test ./... -race -cover -count=1
+```
+
+After the first download, run tests with `GOPROXY=off GOSUMDB=off` to confirm
+that they need no remote services. For the same lint and advisory checks as CI:
+
+```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
+go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+golangci-lint run ./...
+gosec ./...
+govulncheck ./...
+```
+
+`govulncheck` needs access to the public Go advisory database. These checks do
+not contact the Mist API. CI pins tool releases so each run uses the same tools.
 
 The shared CI workflows live in [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools). Each caller pins a devtools release commit, and a comment names the release tag.
 
