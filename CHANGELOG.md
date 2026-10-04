@@ -22,6 +22,10 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- Deps: `mistapi-go` v0.4.108 -> v0.4.109 and `modernc.org/sqlite` v1.59.0 -> v1.60.1; refresh their runtime dependencies and checksums.
+- Build: require Go 1.26.8 or later and pin the container builder to Go 1.27.1 on Alpine 3.24.
+- Build: exclude local tools, credentials, data, and test artifacts from the container build context.
+- CI: pin current stable action and lint tool releases; document the existing offline harness and add SDK HTTP contract tests.
 - CI: the shared workflows call [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools) v0.6.0, pinned by commit SHA
 - Deps: `modernc.org/sqlite` v1.52.0 → v1.59.0 (#43)
 - Deps: `github.com/tmunzer/mistapi-go` v0.4.103 → v0.4.108; `GetOrgInventory` takes a new `disconnectedBefore` filter, and the inventory export leaves it unset, so the export still returns every device (#44)

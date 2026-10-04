@@ -46,8 +46,8 @@ specs/                  # SpecKit feature specs
 - **Error handling**: Always check and propagate errors. Use `fmt.Errorf("context: %w", err)` for wrapping
 
 ### Critical Dependencies
-- **Go**: 1.21+
-- **mistapi-go**: `github.com/tmunzer/mistapi-go` v0.4.73+ (Official Go Mist API SDK by Thomas Munzer)
+- **Go**: 1.26.8+ (CI and container builder: 1.27.1)
+- **mistapi-go**: `github.com/tmunzer/mistapi-go` v0.4.109 (Official Go Mist API SDK by Thomas Munzer)
 - **godotenv**: `github.com/joho/godotenv` v1.5.1 (`.env` file loading)
 - **Container Runtime**: Podman (primary), Docker (compatible but not documented -- all examples use Podman)
 

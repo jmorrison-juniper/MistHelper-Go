@@ -5,7 +5,7 @@
 # ============================================================
 
 # ── Build Stage ──────────────────────────────────────────────
-FROM docker.io/library/golang:1.27-alpine AS builder
+FROM docker.io/library/golang:1.27.1-alpine3.24 AS builder
 
 WORKDIR /build
 

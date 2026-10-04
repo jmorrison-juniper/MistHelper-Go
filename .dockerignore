@@ -1,0 +1,13 @@
+.git
+.env
+data/
+dist/
+vendor/
+coverage*
+*.log
+*.test
+*.test.exe
+misthelper-go
+misthelper-go.exe
+misthelper
+misthelper.exe
