@@ -328,6 +328,7 @@ func TestInitPackages_FullSuccess(t *testing.T) {
 	t.Chdir(t.TempDir())                                            // Writable CWD for MkdirAll and host key generation
 	t.Setenv("MIST_API_TOKEN", "fake-token-for-testing")            // Required by LoadConfig (never used for real API calls)
 	t.Setenv("MIST_ORG_ID", "00000000-0000-0000-0000-000000000000") // Valid UUID format satisfies validation
+	t.Setenv("SSH_PASSWORD", "test-ssh-password")                   // Required by LoadConfig -- test value only
 	t.Setenv("OUTPUT_FORMAT", "")                                   // Clear so --format "csv" flag takes precedence
 	pkgs, err := initPackages("csv")                                // Full initialisation with CSV output
 	if err != nil {                                                 // All steps should succeed with fake creds
@@ -388,6 +389,7 @@ func TestInitPackages_InvalidFormatFails(t *testing.T) {
 	t.Chdir(t.TempDir())                                            // Writable CWD so MkdirAll succeeds
 	t.Setenv("MIST_API_TOKEN", "fake-token-for-testing")            // Required by LoadConfig
 	t.Setenv("MIST_ORG_ID", "00000000-0000-0000-0000-000000000000") // Valid UUID format
+	t.Setenv("SSH_PASSWORD", "test-ssh-password")                   // Required by LoadConfig -- test value only
 	_, err := initPackages("unsupported_format")                    // NewWriter rejects unknown formats
 	if err == nil {                                                 // Must return an error for the bad format
 		t.Error("initPackages succeeded; expected error for unsupported output format")
@@ -412,6 +414,7 @@ func TestRunMain_Menu0Quit(t *testing.T) {
 	t.Chdir(t.TempDir())                                            // Isolate filesystem side effects under a scratch directory
 	t.Setenv("MIST_API_TOKEN", "fake-token-for-testing")            // Satisfy LoadConfig without touching real credentials
 	t.Setenv("MIST_ORG_ID", "00000000-0000-0000-0000-000000000000") // Valid UUID format keeps LoadConfig happy
+	t.Setenv("SSH_PASSWORD", "test-ssh-password")                   // Required by LoadConfig -- test value only
 	t.Setenv("SSH_PORT", "0")                                       // Let the OS pick an available port for SSH
 	t.Setenv("WEB_PORT", "0")                                       // Let the OS pick an available port for HTTP
 	err := runMain([]string{"--menu", "0"})                         // Clean-quit path should initialize and shut down without error

@@ -220,7 +220,7 @@ func initPackages(formatFlag string) (appPackages, error) {
 	if err := godotenv.Load(); err != nil { // .env is optional when running in a container with injected env vars
 		slog.Debug("no .env file found, relying on environment variables", "error", err) // not fatal; note for debugging misconfigured deployments
 	}
-	cfg, err := api.LoadConfig(formatFlag) // validate required env vars (MIST_API_TOKEN, MIST_ORG_ID)
+	cfg, err := api.LoadConfig(formatFlag) // validate required env vars (MIST_API_TOKEN, MIST_ORG_ID, SSH_PASSWORD)
 	if err != nil {
 		return appPackages{}, fmt.Errorf("load config: %w", err) // message includes which env var is missing
 	}

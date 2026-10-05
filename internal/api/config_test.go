@@ -7,8 +7,9 @@ import (
 
 // TestLoadConfig_ValidEnv verifies that LoadConfig succeeds when both required env vars are present.
 func TestLoadConfig_ValidEnv(t *testing.T) {
-	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Inject valid token for this test
-	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")  // Inject valid org ID for this test
+	t.Setenv("MIST_API_TOKEN", "tok-test-123")    // Inject valid token for this test
+	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")     // Inject valid org ID for this test
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
 
 	cfg, err := LoadConfig("") // No CLI format override
 	if err != nil {            // Should succeed with valid env vars
@@ -27,7 +28,8 @@ func TestLoadConfig_MissingToken(t *testing.T) {
 	if err := os.Unsetenv("MIST_API_TOKEN"); err != nil { // Ensure token is absent for this test
 		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- if we cannot clear the env the test is invalid
 	}
-	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc") // Org is present; token is the missing piece
+	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")     // Org is present; token is the missing piece
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
 
 	_, err := LoadConfig("") // Should fail with a descriptive error
 	if err == nil {          // Missing required field must be an error
@@ -50,9 +52,10 @@ func TestLoadConfig_MissingOrgID(t *testing.T) {
 
 // TestLoadConfig_CLIFormatOverridesEnv verifies that the --format flag takes precedence over OUTPUT_FORMAT env var.
 func TestLoadConfig_CLIFormatOverridesEnv(t *testing.T) {
-	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Required field
-	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")  // Required field
-	t.Setenv("OUTPUT_FORMAT", "sqlite")        // Env var says sqlite
+	t.Setenv("MIST_API_TOKEN", "tok-test-123")    // Required field
+	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")     // Required field
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
+	t.Setenv("OUTPUT_FORMAT", "sqlite")           // Env var says sqlite
 
 	cfg, err := LoadConfig("csv") // CLI flag overrides with "csv"
 	if err != nil {               // Config load should succeed
@@ -65,9 +68,10 @@ func TestLoadConfig_CLIFormatOverridesEnv(t *testing.T) {
 
 // TestLoadConfig_EnvFormatUsedWhenNoFlag verifies that OUTPUT_FORMAT env var is used when no CLI flag is given.
 func TestLoadConfig_EnvFormatUsedWhenNoFlag(t *testing.T) {
-	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Required field
-	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")  // Required field
-	t.Setenv("OUTPUT_FORMAT", "sqlite")        // Env var sets format
+	t.Setenv("MIST_API_TOKEN", "tok-test-123")    // Required field
+	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")     // Required field
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
+	t.Setenv("OUTPUT_FORMAT", "sqlite")           // Env var sets format
 
 	cfg, err := LoadConfig("") // No CLI flag -- env var should be used
 	if err != nil {            // Config load should succeed
@@ -82,6 +86,7 @@ func TestLoadConfig_EnvFormatUsedWhenNoFlag(t *testing.T) {
 func TestLoadConfig_DefaultCSVWhenNoFlag(t *testing.T) {
 	t.Setenv("MIST_API_TOKEN", "tok-test-123")           // Required field
 	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")            // Required field
+	t.Setenv("SSH_PASSWORD", "test-ssh-password")        // Required by LoadConfig -- test value only
 	if err := os.Unsetenv("OUTPUT_FORMAT"); err != nil { // No env var -- should fall back to default
 		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- if we cannot clear the env the test result is undefined
 	}
@@ -99,6 +104,7 @@ func TestLoadConfig_DefaultCSVWhenNoFlag(t *testing.T) {
 func TestLoadConfig_RateLimitDefault(t *testing.T) {
 	t.Setenv("MIST_API_TOKEN", "tok-test-123")               // Required field
 	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")                // Required field
+	t.Setenv("SSH_PASSWORD", "test-ssh-password")            // Required by LoadConfig -- test value only
 	if err := os.Unsetenv("API_RATE_LIMIT_MS"); err != nil { // Ensure no override for this test
 		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- if env cannot be cleared the test is invalid
 	}
@@ -114,9 +120,10 @@ func TestLoadConfig_RateLimitDefault(t *testing.T) {
 
 // TestLoadConfig_RateLimitFromEnv verifies API_RATE_LIMIT_MS env var is respected.
 func TestLoadConfig_RateLimitFromEnv(t *testing.T) {
-	t.Setenv("MIST_API_TOKEN", "tok-test-123") // Required field
-	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")  // Required field
-	t.Setenv("API_RATE_LIMIT_MS", "500")       // Override rate limit
+	t.Setenv("MIST_API_TOKEN", "tok-test-123")    // Required field
+	t.Setenv("MIST_ORG_ID", "aaaa-bbbb-cccc")     // Required field
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
+	t.Setenv("API_RATE_LIMIT_MS", "500")          // Override rate limit
 
 	cfg, err := LoadConfig("") // Load config
 	if err != nil {            // Should succeed

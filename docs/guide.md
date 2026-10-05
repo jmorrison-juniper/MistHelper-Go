@@ -34,7 +34,8 @@ podman run -d --name misthelper-go \
 ```
 
 These port mappings restrict access to the local host. Remote access requires
-an approved network configuration. Never expose the default SSH password.
+an approved network configuration. `SSH_PASSWORD` is required, and the
+application does not start without it. Use a strong password.
 Do not commit `.env`, tokens, host keys, or exported network data.
 
 ### Podman Quadlet service

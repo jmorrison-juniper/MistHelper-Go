@@ -3,6 +3,7 @@ package api
 
 import (
 	"os"      // for os.Unsetenv -- clears env vars between test cases
+	"strings" // for strings.Contains -- checks the error names the missing variable
 	"testing" // for testing.T -- standard Go test runner
 )
 
@@ -109,10 +110,11 @@ func TestResolveOutputFormat_DefaultCSV(t *testing.T) {
 // TestLoadConfig_EmptyToken verifies that LoadConfig returns an error when MIST_API_TOKEN is set to empty string.
 func TestLoadConfig_EmptyToken(t *testing.T) {
 	// NOT parallel -- t.Setenv modifies process-global env, incompatible with t.Parallel
-	t.Setenv("MIST_API_TOKEN", "")         // Set token to empty string -- treated as absent
-	t.Setenv("MIST_ORG_ID", "some-org-id") // Provide org ID so token check fires first
-	_, err := LoadConfig("")               // Attempt to load with empty token
-	if err == nil {                        // Must return an error when token is empty
+	t.Setenv("MIST_API_TOKEN", "")                // Set token to empty string -- treated as absent
+	t.Setenv("MIST_ORG_ID", "some-org-id")        // Provide org ID so token check fires first
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
+	_, err := LoadConfig("")                      // Attempt to load with empty token
+	if err == nil {                               // Must return an error when token is empty
 		t.Error("expected error for empty MIST_API_TOKEN, got nil") // Fail if no error returned
 	}
 }
@@ -131,10 +133,11 @@ func TestLoadConfig_EmptyOrgID(t *testing.T) {
 // TestLoadConfig_SuccessWithCLIFormat verifies that LoadConfig returns a Config with the CLI format applied.
 func TestLoadConfig_SuccessWithCLIFormat(t *testing.T) {
 	// NOT parallel -- t.Setenv modifies process-global env, incompatible with t.Parallel
-	t.Setenv("MIST_API_TOKEN", "test-token-xyz") // Set required token
-	t.Setenv("MIST_ORG_ID", "test-org-abc")      // Set required org ID
-	cfg, err := LoadConfig("sqlite")             // CLI flag "sqlite" overrides default
-	if err != nil {                              // LoadConfig must succeed with valid inputs
+	t.Setenv("MIST_API_TOKEN", "test-token-xyz")  // Set required token
+	t.Setenv("MIST_ORG_ID", "test-org-abc")       // Set required org ID
+	t.Setenv("SSH_PASSWORD", "test-ssh-password") // Required by LoadConfig -- test value only
+	cfg, err := LoadConfig("sqlite")              // CLI flag "sqlite" overrides default
+	if err != nil {                               // LoadConfig must succeed with valid inputs
 		t.Fatalf("unexpected error: %v", err) // Fail fast with error detail
 	}
 	if cfg.APIToken != "test-token-xyz" { // Token must be copied from env var
@@ -145,5 +148,50 @@ func TestLoadConfig_SuccessWithCLIFormat(t *testing.T) {
 	}
 	if cfg.OutputFormat != "sqlite" { // CLI flag format must override env var
 		t.Errorf("expected OutputFormat=%q, got %q", "sqlite", cfg.OutputFormat) // Report mismatch
+	}
+}
+
+// TestLoadConfig_EmptySSHPassword verifies that LoadConfig fails when SSH_PASSWORD is empty.
+// An empty value must not fall back to a compiled default password (issue #78).
+func TestLoadConfig_EmptySSHPassword(t *testing.T) {
+	// NOT parallel -- t.Setenv modifies process-global env, incompatible with t.Parallel
+	t.Setenv("MIST_API_TOKEN", "valid-token") // Provide token so the SSH password check fires
+	t.Setenv("MIST_ORG_ID", "valid-org")      // Provide org ID so the SSH password check fires
+	t.Setenv("SSH_PASSWORD", "")              // Empty value -- treated as absent
+	_, err := LoadConfig("")                  // Attempt to load with an empty SSH password
+	if err == nil {                           // Must return an error when the SSH password is empty
+		t.Fatal("expected error for empty SSH_PASSWORD, got nil") // Fail if no error returned
+	}
+	if !strings.Contains(err.Error(), "SSH_PASSWORD") { // The error must name the missing variable
+		t.Errorf("error %q does not name SSH_PASSWORD", err) // Report the unhelpful message
+	}
+}
+
+// TestLoadConfig_AbsentSSHPassword verifies that LoadConfig fails when SSH_PASSWORD is not set.
+func TestLoadConfig_AbsentSSHPassword(t *testing.T) {
+	// NOT parallel -- t.Setenv modifies process-global env, incompatible with t.Parallel
+	t.Setenv("MIST_API_TOKEN", "valid-token")           // Provide token so the SSH password check fires
+	t.Setenv("MIST_ORG_ID", "valid-org")                // Provide org ID so the SSH password check fires
+	t.Setenv("SSH_PASSWORD", "placeholder")             // Register cleanup that restores the original value
+	if err := os.Unsetenv("SSH_PASSWORD"); err != nil { // Remove the variable for this test
+		t.Fatalf("os.Unsetenv: %v", err) // Fatal -- the test is invalid if the env cannot be cleared
+	}
+	if _, err := LoadConfig(""); err == nil { // Absent password must not fall back to a default
+		t.Fatal("expected error for absent SSH_PASSWORD, got nil") // Fail if no error returned
+	}
+}
+
+// TestLoadConfig_SSHPasswordFromEnv verifies that LoadConfig copies SSH_PASSWORD into Config.
+func TestLoadConfig_SSHPasswordFromEnv(t *testing.T) {
+	// NOT parallel -- t.Setenv modifies process-global env, incompatible with t.Parallel
+	t.Setenv("MIST_API_TOKEN", "valid-token")       // Required field
+	t.Setenv("MIST_ORG_ID", "valid-org")            // Required field
+	t.Setenv("SSH_PASSWORD", "operator-set-secret") // Operator-supplied password
+	cfg, err := LoadConfig("")                      // Load with all required variables
+	if err != nil {                                 // Must succeed when each required variable is set
+		t.Fatalf("unexpected error: %v", err) // Fail fast with error detail
+	}
+	if cfg.SSHPassword != "operator-set-secret" { // Password must come from the environment exactly
+		t.Error("SSHPassword does not match the SSH_PASSWORD value") // Do not print the password value
 	}
 }

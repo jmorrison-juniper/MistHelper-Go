@@ -14,9 +14,9 @@ func TestVersionFlag(t *testing.T) {
 		t.Fatalf("go toolchain not found: %v", err) // CI must have Go available
 	}
 
-	cmd := exec.Command(exe, "run", ".", "-version")                          // Run the current package with --version
-	cmd.Dir = "."                                                             // Run from the package directory
-	cmd.Env = append(os.Environ(), "MIST_API_TOKEN=test", "MIST_ORG_ID=test") // Provide stub creds so loadConfig does not exit 1
+	cmd := exec.Command(exe, "run", ".", "-version")                                               // Run the current package with --version
+	cmd.Dir = "."                                                                                  // Run from the package directory
+	cmd.Env = append(os.Environ(), "MIST_API_TOKEN=test", "MIST_ORG_ID=test", "SSH_PASSWORD=test") // Provide stub creds so loadConfig does not exit 1
 
 	out, err := cmd.CombinedOutput() // Capture stdout+stderr together
 	if err != nil {                  // --version should always exit 0
@@ -52,6 +52,7 @@ func TestMenu0Quit(t *testing.T) {
 	cmd.Env = append(os.Environ(),                      // start from the real environment to preserve PATH and GOPATH
 		"MIST_API_TOKEN=test", // stub API token satisfies LoadConfig validation
 		"MIST_ORG_ID=test",    // stub org ID (not a valid UUID but passes the non-empty check)
+		"SSH_PASSWORD=test",   // stub SSH password -- LoadConfig requires it
 		"SSH_PORT=0",          // port 0 lets the OS assign a free port, avoiding bind conflicts in CI
 		"WEB_PORT=0",          // same for the HTTP server
 	)
