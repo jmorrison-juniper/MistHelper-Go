@@ -31,6 +31,8 @@ node docs/check.mjs
 node --test docs/check.test.mjs
 ```
 
+The `gofmt` formatter in `.golangci.yml` makes `golangci-lint run` fail when a
+Go file is not formatted. Run `gofmt -w` on the file to repair it.
 `govulncheck` needs the public Go advisory database. These checks do not contact
 the Mist API. The documentation check needs Node.js 18 or later, with no extra
 packages. It checks the landing headings, relative links, screenshot references,
