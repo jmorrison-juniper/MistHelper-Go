@@ -9,6 +9,8 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- 26.10.05.06.37: Constitution v1.0.2 names `data/sessions/` for the SSH session
+  directories, as the SSH server uses, in place of `data/per-host-logs/` (#80).
 - 26.10.05.06.27: Add `.golangci.yml` with the `gofmt` formatter, so the lint gate
   fails when a Go file is not formatted (#67).
 - 26.10.05.06.23: Format the 15 Go files that `gofmt -l` listed. The change is

@@ -1,17 +1,15 @@
 <!-- Sync Impact Report
-Version change: 1.0.0 -> 1.0.1 (PATCH: factual corrections, no principle change)
+Version change: 1.0.1 -> 1.0.2 (PATCH: factual correction, no principle change)
 Modified sections:
-  - Technology & Compatibility Constraints: Go 1.26.8+, mistapi-go v0.4.109+,
-    output backends are CSV and SQLite, ArangoDB and Redis are planned
-  - Adding New Menu Operations: step 4 names the existing backends
-  - Documentation and Governance: the lowercase agents file -> AGENTS.md plus
-    .github/copilot-instructions.md
+  - Technology & Compatibility Constraints, Data Directory: the SSH server
+    makes one directory for each session under data/sessions/ and writes
+    no log directory for each host. The SSH host key is data/ssh_host_rsa_key.
 Added sections: none
 Removed sections: none
 Templates:
-  - .specify/templates/constitution-template.md: updated
-  - .specify/templates/agent-file-template.md: updated
-  - .specify/templates/plan-template.md: updated
+  - .specify/templates/constitution-template.md: no change needed
+  - .specify/templates/agent-file-template.md: no change needed
+  - .specify/templates/plan-template.md: no change needed
   - .specify/templates/spec-template.md: no change needed
   - .specify/templates/tasks-template.md: no change needed
   - .specify/templates/checklist-template.md: no change needed
@@ -295,7 +293,8 @@ The following technology choices are binding for all MistHelper-Go code:
   artificial IDs). Primary key strategy MUST be defined in the
   endpoint strategies map before implementing any new operation.
 - **Data Directory**: All outputs MUST go to the `data/` directory,
-  enforced at runtime. SSH logs go to `data/per-host-logs/`.
+  enforced at runtime. Each SSH session gets an isolated directory
+  under `data/sessions/`. The SSH host key is `data/ssh_host_rsa_key`.
   Database file is `data/mist_data.db`.
 - **Container Security**: The container runs as non-root user
   (`misthelper`). The mounted `data/` directory MUST be writable
@@ -537,4 +536,4 @@ constraint — a SpecKit spec for MistHelper-Go must reference the
 existing Python operation it is porting. Specs for net-new features
 belong in the Python repo, not here.
 
-**Version**: 1.0.1 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-05
+**Version**: 1.0.2 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-05
