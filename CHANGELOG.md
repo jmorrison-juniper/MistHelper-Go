@@ -9,6 +9,9 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- 26.10.05.06.15: Pull request template: replace the web UI and end-to-end test
+  section with a check for the JSON routes, and add the documentation and
+  STE checks (#70).
 - 26.10.05.06.10: Spec Kit: the constitution (v1.0.1) and the plan, agent-file, and
   constitution templates name Go 1.26.8, mistapi-go v0.4.109, the CSV and
   SQLite writers, and `AGENTS.md` (#70).
