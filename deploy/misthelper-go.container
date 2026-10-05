@@ -1,7 +1,13 @@
+[Unit]
+Description=MistHelper-Go container
+Wants=network-online.target
+After=network-online.target
+
 [Container]
+ContainerName=misthelper-go
 Image=ghcr.io/jmorrison-juniper/misthelper-go:latest
-PublishPort=2200:2200
-PublishPort=8055:8055
+PublishPort=127.0.0.1:2200:2200
+PublishPort=127.0.0.1:8055:8055
 Volume=./data:/app/data:rw
 EnvironmentFile=./.env
 

@@ -37,6 +37,26 @@ These port mappings restrict access to the local host. Remote access requires
 an approved network configuration. Never expose the default SSH password.
 Do not commit `.env`, tokens, host keys, or exported network data.
 
+### Podman Quadlet service
+
+Use the Quadlet unit `deploy/misthelper-go.container` to start the container
+as a user service. Quadlet reads relative paths from the directory of the unit
+file. Do these steps on the container host:
+
+```bash
+mkdir -p ~/.config/containers/systemd/data
+cp deploy/misthelper-go.container ~/.config/containers/systemd/
+cp .env.example ~/.config/containers/systemd/.env
+chmod 600 ~/.config/containers/systemd/.env
+# Edit the .env file: set MIST_API_TOKEN, MIST_ORG_ID, and a strong SSH_PASSWORD.
+systemctl --user daemon-reload
+systemctl --user start misthelper-go
+systemctl --user status misthelper-go
+```
+
+The unit publishes the SSH and HTTP ports on the local host only. To start the
+service at boot without a login session, run `loginctl enable-linger`.
+
 ## Access and output
 
 ```bash
