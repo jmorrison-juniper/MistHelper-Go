@@ -9,6 +9,9 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- 26.10.05.06.10: Spec Kit: the constitution (v1.0.1) and the plan, agent-file, and
+  constitution templates name Go 1.26.8, mistapi-go v0.4.109, the CSV and
+  SQLite writers, and `AGENTS.md` (#70).
 - 26.10.05.06.04: Config: `.env.example` lists only the variables that the code reads:
   `OUTPUT_FORMAT`, `API_RATE_LIMIT_MS`, `SSH_PORT`, `SSH_USER`,
   `SSH_PASSWORD`, and `WEB_PORT`. The ArangoDB and Redis variables stay as

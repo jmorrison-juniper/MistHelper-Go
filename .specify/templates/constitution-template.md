@@ -54,7 +54,7 @@
 <!-- Example: Technology & Compatibility Constraints -->
 
 [SECTION_2_CONTENT]
-<!-- Go 1.21+, mistapi-go v0.4.73+, godotenv v1.5.1, filepath.Join, log/slog,
+<!-- Go 1.26.8+, mistapi-go v0.4.109+, godotenv v1.5.1, filepath.Join, log/slog,
      Podman primary, GitHub Actions for container builds, data/ output directory -->
 
 ## [SECTION_3_NAME]
@@ -70,7 +70,7 @@
      Compliance review on every PR. Principles VI and VII are non-negotiable quality gates. -->
 
 [GOVERNANCE_RULES]
-<!-- Runtime guidance in agents.md (daily) and .github/copilot-instructions.md (comprehensive).
+<!-- Runtime guidance in AGENTS.md (owner-wide agent rules) and .github/copilot-instructions.md (repository rules).
      Python reference at ../MistHelper/MistHelper.py for behavior parity. -->
 
 **Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]

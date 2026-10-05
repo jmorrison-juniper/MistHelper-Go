@@ -1,3 +1,23 @@
+<!-- Sync Impact Report
+Version change: 1.0.0 -> 1.0.1 (PATCH: factual corrections, no principle change)
+Modified sections:
+  - Technology & Compatibility Constraints: Go 1.26.8+, mistapi-go v0.4.109+,
+    output backends are CSV and SQLite, ArangoDB and Redis are planned
+  - Adding New Menu Operations: step 4 names the existing backends
+  - Documentation and Governance: the lowercase agents file -> AGENTS.md plus
+    .github/copilot-instructions.md
+Added sections: none
+Removed sections: none
+Templates:
+  - .specify/templates/constitution-template.md: updated
+  - .specify/templates/agent-file-template.md: updated
+  - .specify/templates/plan-template.md: updated
+  - .specify/templates/spec-template.md: no change needed
+  - .specify/templates/tasks-template.md: no change needed
+  - .specify/templates/checklist-template.md: no change needed
+Follow-up TODOs: none
+-->
+
 <!-- Global coding standards (5-Item Rule, architecture,
      safety-first input, logging, quality gates) are defined in the
      user-level VS Code instructions file:
@@ -148,7 +168,7 @@ All log output MUST use ASCII characters only. Unicode characters
 (including emoji) MUST be replaced with ASCII substitutions for
 cross-platform compatibility.
 
-Use `log/slog` (Go 1.21+ standard library) for structured logging.
+Use `log/slog` (Go standard library) for structured logging.
 Logging levels MUST follow these standards:
 - **Debug**: Internal state changes, raw API responses
 - **Info**: User-facing progress messages
@@ -250,8 +270,9 @@ Code without logging is code without observability.
 
 The following technology choices are binding for all MistHelper-Go code:
 
-- **Go**: 1.21 or newer. No code may target older Go versions.
-- **mistapi-go**: v0.4.73+ (Thomas Munzer's Go Mist API SDK). This is
+- **Go**: 1.26.8 or newer, as `go.mod` sets. CI and the container
+  builder use Go 1.27.1. No code may target older Go versions.
+- **mistapi-go**: v0.4.109+ (Thomas Munzer's Go Mist API SDK). This is
   the sole interface to the Juniper Mist Cloud API. Direct HTTP calls
   to Mist endpoints are prohibited when a mistapi-go method exists.
 - **godotenv**: v1.5.1 for `.env` file loading.
@@ -268,8 +289,8 @@ The following technology choices are binding for all MistHelper-Go code:
 - **File Paths**: MUST use `filepath.Join()`. Never hardcode `/` or
   `\\` separators. Windows compatibility is required.
 - **Output Backends**: All data operations MUST support multi-backend
-  output (CSV, SQLite, and polyglot ArangoDB/Redis) via the
-  `output.Writer` interface.
+  output via the `output.Writer` interface. CSV and SQLite writers
+  exist. ArangoDB and Redis backends are planned, not implemented.
 - **Database Keys**: Natural business keys from the Mist API (not
   artificial IDs). Primary key strategy MUST be defined in the
   endpoint strategies map before implementing any new operation.
@@ -281,7 +302,7 @@ The following technology choices are binding for all MistHelper-Go code:
   before first run.
 - **Zscaler/Proxy**: Local `podman push` behind corporate Zscaler is
   blocked. All container builds and pushes MUST use GitHub Actions CI.
-- **Logging**: `log/slog` (Go standard library, 1.21+). No third-party
+- **Logging**: `log/slog` (Go standard library). No third-party
   logging libraries.
 - **Error handling**: Always wrap errors with
   `fmt.Errorf("context: %w", err)`. Never discard errors with `_`
@@ -300,7 +321,7 @@ Every new operation MUST follow this sequence:
 3. **Flatten JSON** — Use existing flatten helpers in `internal/api/`
    for nested API response structures.
 4. **Multi-Backend Output** — Use the `output.Writer` interface to
-   support CSV, SQLite, and ArangoDB/Redis backends.
+   support the CSV and SQLite backends.
 5. **Update README** — Modify the operation count and add the new
    operation to the menu table.
 6. **Version Changelog** — Add entry to `CHANGELOG.md` with
@@ -347,10 +368,10 @@ findings left unresolved become real attack surfaces.
 
 - **README.md**: User-facing operations guide. MUST be updated for
   every new operation or behavior change.
-- **agents.md**: Internal VS Code Chat coding guide. MUST be consulted
-  before making architectural decisions.
-- **.github/copilot-instructions.md**: Full project guide. The primary
-  reference for AI agents.
+- **AGENTS.md**: Owner-wide agent rules. MUST be read before making
+  changes.
+- **.github/copilot-instructions.md**: Repository-specific agent rules.
+  It adds to `AGENTS.md`.
 - **Version format**: `YY.MM.DD.HH.MM` (UTC timestamp), consistent
   across changelog entries, commit messages, and container tags.
 
@@ -504,8 +525,8 @@ Principles VI (Inline Comments) and VII (Action Logging) are
 non-negotiable quality gates — code lacking either MUST NOT pass
 review, regardless of other merits.
 
-**Runtime guidance**: `agents.md` provides daily coding quick reference.
-`.github/copilot-instructions.md` is the comprehensive project guide.
+**Runtime guidance**: `AGENTS.md` gives the owner-wide agent rules.
+`.github/copilot-instructions.md` gives the rules for this repository.
 The constitution provides the non-negotiable rules; those files provide
 the how-to.
 
@@ -516,4 +537,4 @@ constraint — a SpecKit spec for MistHelper-Go must reference the
 existing Python operation it is porting. Specs for net-new features
 belong in the Python repo, not here.
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-05-21
+**Version**: 1.0.1 | **Ratified**: 2026-05-21 | **Last Amended**: 2026-10-05
