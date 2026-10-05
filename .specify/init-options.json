@@ -1,7 +1,7 @@
 {
   "ai": "copilot",
   "branch_numbering": "sequential",
-  "context_file": ".github/copilot-instructions.md",
+  "context_file": ".specify/memory/agent-context.md",
   "here": true,
   "integration": "copilot",
   "script": "ps",

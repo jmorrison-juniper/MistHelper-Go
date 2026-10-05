@@ -12,7 +12,7 @@ const checker = resolve(root, 'docs/check.mjs');
 function fixture(t) {
   const folder = mkdtempSync(resolve(tmpdir(), 'misthelper-docs-'));
   t.after(() => rmSync(folder, { recursive: true, force: true }));
-  for (const path of ['README.md', 'docs', 'CHANGELOG.md', 'LICENSE',
+  for (const path of ['README.md', 'AGENTS.md', 'docs', 'CHANGELOG.md', 'LICENSE',
     'SECURITY.md', 'CODE_OF_CONDUCT.md', 'specs/README.md', '.github/copilot-instructions.md']) {
     const target = resolve(folder, path);
     mkdirSync(dirname(target), { recursive: true });

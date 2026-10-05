@@ -95,7 +95,7 @@ body:
       description: Any technical context, prior art, or suggested approaches?
       placeholder: |
         Relevant existing code, packages to use, patterns to follow.
-        References to agents.md or copilot-instructions.md conventions.
+        See AGENTS.md and .github/copilot-instructions.md for agent rules.
     validations:
       required: false
 
@@ -105,8 +105,7 @@ body:
       label: UI Behavior & Automated Testing Expectations
       description: |
         For features involving the web UI (port 8055).
-        The AI agent uses VS Code Browser Agent Tools to autonomously open, interact with, and test these pages.
-        See agents.md and copilot-instructions.md for the full capability reference.
+        Read AGENTS.md and .github/copilot-instructions.md for agent rules.
       placeholder: |
         1. Target URL(s): e.g., http://localhost:8055/, /dashboard, /jobs
         2. Critical user journeys:
