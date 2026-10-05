@@ -124,12 +124,3 @@ body:
         6. Non-goals: flows not covered by this feature
     validations:
       required: false
-
-  - type: checkboxes
-    id: copilot-assign
-    attributes:
-      label: AI Implementation
-      description: Check to have the Copilot Coding Agent automatically implement this feature.
-      options:
-        - label: Assign to Copilot Coding Agent (adds 'copilot' label)
-          required: false

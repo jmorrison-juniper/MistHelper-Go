@@ -7,6 +7,13 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ## [Unreleased]
 
+### Removed
+
+- 26.10.05.06.00: CI: remove the Copilot cloud-agent workflows `copilot-auto-assign.yml`,
+  `copilot-label-checkbox.yml`, and `copilot-setup-steps.yml`, and the
+  Copilot assignment checkbox in the issue templates. The owner does not use
+  the Copilot cloud agent (#69).
+
 ### Documentation
 
 - 26.10.05.05.07: adopt the owner-wide `AGENTS.md`, replace duplicate agent
