@@ -106,42 +106,42 @@ func TestSafeInput_EOF(t *testing.T) {
 // TestSafeInput_CROnlyTerminator verifies that SafeInput accepts CR-only Enter sequences.
 // Some SSH PTY clients send carriage return without line feed when Enter is pressed.
 func TestSafeInput_CROnlyTerminator(t *testing.T) {
-	t.Parallel()                                                                     // Safe to run concurrently
-	reader := bufio.NewReader(bytes.NewBufferString("11\r"))                         // Simulate PTY Enter with CR-only line ending
-	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context")         // Call under test with CR-only terminated input
-	if err != nil {                                                                   // CR-only input must be accepted without error
-		t.Fatalf("expected nil error for CR-only input, got %v", err)                    // Report unexpected error for easier debugging
+	t.Parallel()                                                             // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString("11\r"))                 // Simulate PTY Enter with CR-only line ending
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context") // Call under test with CR-only terminated input
+	if err != nil {                                                          // CR-only input must be accepted without error
+		t.Fatalf("expected nil error for CR-only input, got %v", err) // Report unexpected error for easier debugging
 	}
-	if result != "11" {                                                                // Returned value must exclude the CR terminator
-		t.Errorf("expected %q for CR-only input, got %q", "11", result)                  // Report mismatch if parsing failed
+	if result != "11" { // Returned value must exclude the CR terminator
+		t.Errorf("expected %q for CR-only input, got %q", "11", result) // Report mismatch if parsing failed
 	}
 }
 
 // TestSafeInput_CRNULTerminator verifies that SafeInput accepts CR-NUL line endings.
 // Some Windows PTY stacks emit NUL after carriage return when Enter is pressed.
 func TestSafeInput_CRNULTerminator(t *testing.T) {
-	t.Parallel()                                                                     // Safe to run concurrently
-	reader := bufio.NewReader(bytes.NewBufferString("11\r\x00"))                    // Simulate Enter as CR followed by NUL
-	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context")         // Call under test with CR-NUL input
-	if err != nil {                                                                   // CR-NUL input must be accepted without error
-		t.Fatalf("expected nil error for CR-NUL input, got %v", err)                    // Report unexpected error for easier debugging
+	t.Parallel()                                                             // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString("11\r\x00"))             // Simulate Enter as CR followed by NUL
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context") // Call under test with CR-NUL input
+	if err != nil {                                                          // CR-NUL input must be accepted without error
+		t.Fatalf("expected nil error for CR-NUL input, got %v", err) // Report unexpected error for easier debugging
 	}
-	if result != "11" {                                                                // Returned value must exclude CR and NUL terminators
-		t.Errorf("expected %q for CR-NUL input, got %q", "11", result)                  // Report mismatch if parsing failed
+	if result != "11" { // Returned value must exclude CR and NUL terminators
+		t.Errorf("expected %q for CR-NUL input, got %q", "11", result) // Report mismatch if parsing failed
 	}
 }
 
 // TestSafeInput_NULTerminator verifies that SafeInput accepts NUL as line terminator
 // when characters have already been typed.
 func TestSafeInput_NULTerminator(t *testing.T) {
-	t.Parallel()                                                                     // Safe to run concurrently
-	reader := bufio.NewReader(bytes.NewBufferString("11\x00"))                       // Simulate Enter encoded as trailing NUL after typed text
-	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context")         // Call under test with NUL-terminated input
-	if err != nil {                                                                   // NUL-terminated input must be accepted without error
-		t.Fatalf("expected nil error for NUL-terminated input, got %v", err)             // Report unexpected error for easier debugging
+	t.Parallel()                                                             // Safe to run concurrently
+	reader := bufio.NewReader(bytes.NewBufferString("11\x00"))               // Simulate Enter encoded as trailing NUL after typed text
+	result, err := SafeInput(reader, io.Discard, "prompt> ", "test-context") // Call under test with NUL-terminated input
+	if err != nil {                                                          // NUL-terminated input must be accepted without error
+		t.Fatalf("expected nil error for NUL-terminated input, got %v", err) // Report unexpected error for easier debugging
 	}
-	if result != "11" {                                                                // Returned value must exclude NUL terminator
-		t.Errorf("expected %q for NUL-terminated input, got %q", "11", result)          // Report mismatch if parsing failed
+	if result != "11" { // Returned value must exclude NUL terminator
+		t.Errorf("expected %q for NUL-terminated input, got %q", "11", result) // Report mismatch if parsing failed
 	}
 }
 

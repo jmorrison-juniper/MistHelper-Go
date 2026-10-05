@@ -20,9 +20,9 @@ const defaultPageLimit = 1000
 
 // Client wraps the mistapi-go SDK with project-level config, retry, and logging.
 type Client struct {
-	sdk         mistapi.ClientInterface                                                                // unexported SDK handle; ClientInterface is returned by NewClient
-	cfg         Config                                                                                 // config by value; avoids pointer aliasing issues
-	pageFetcher func(ctx context.Context, orgID uuid.UUID, limit int, page int) ([]models.Site, error) // production default wraps the SDK; tests can replace it to avoid real API calls
+	sdk              mistapi.ClientInterface                                                                                     // unexported SDK handle; ClientInterface is returned by NewClient
+	cfg              Config                                                                                                      // config by value; avoids pointer aliasing issues
+	pageFetcher      func(ctx context.Context, orgID uuid.UUID, limit int, page int) ([]models.Site, error)                      // production default wraps the SDK; tests can replace it to avoid real API calls
 	inventoryFetcher func(ctx context.Context, orgID uuid.UUID, limit int, page int, includeVC bool) ([]models.Inventory, error) // inventory page fetcher; tests can replace it for deterministic behavior
 }
 
@@ -34,9 +34,9 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 	slog.Info("Initialising Mist API client", "org_id", cfg.OrgID) // log before SDK construction
 
-	authHeader := "Token " + cfg.APIToken                 // Mist API requires "Token {apitoken}" format in the Authorization header
-	creds := mistapi.NewApiTokenCredentials(authHeader)   // build API token credentials with required "Token " prefix
-	conf := mistapi.CreateConfiguration(                  // build SDK configuration using functional options
+	authHeader := "Token " + cfg.APIToken               // Mist API requires "Token {apitoken}" format in the Authorization header
+	creds := mistapi.NewApiTokenCredentials(authHeader) // build API token credentials with required "Token " prefix
+	conf := mistapi.CreateConfiguration(                // build SDK configuration using functional options
 		mistapi.WithApiTokenCredentials(creds), // apply API token auth
 	)
 	sdk := mistapi.NewClient(conf) // construct the SDK client; no network call at this point
@@ -63,20 +63,20 @@ func (c *Client) fetchPageFromSDK(ctx context.Context, orgID uuid.UUID, limit in
 // includeVC controls whether virtual-chassis physical members are included (Python parity requires true).
 func (c *Client) fetchInventoryPageFromSDK(ctx context.Context, orgID uuid.UUID, limit int, page int, includeVC bool) ([]models.Inventory, error) {
 	resp, callErr := c.sdk.OrgsInventory().GetOrgInventory( // Call org inventory endpoint with parity flags and pagination values
-		ctx,         // Request context for cancellation and deadlines
-		orgID,       // Target organisation UUID
-		nil,         // serial filter disabled for full inventory export
-		nil,         // model filter disabled for full inventory export
-		nil,         // device type filter disabled for full inventory export
-		nil,         // mac filter disabled for full inventory export
-		nil,         // site filter disabled for full inventory export
-		nil,         // vc_mac filter disabled for full inventory export
-		&includeVC,  // include VC member devices to match Python MistHelper behavior
-		nil,         // unassigned filter disabled for full inventory export
-		nil,         // modified-after filter disabled for full inventory export
-		nil,         // disconnected-before filter disabled for full inventory export
-		&limit,      // page size limit for deterministic pagination behavior
-		&page,       // page number for iterative retrieval
+		ctx,        // Request context for cancellation and deadlines
+		orgID,      // Target organisation UUID
+		nil,        // serial filter disabled for full inventory export
+		nil,        // model filter disabled for full inventory export
+		nil,        // device type filter disabled for full inventory export
+		nil,        // mac filter disabled for full inventory export
+		nil,        // site filter disabled for full inventory export
+		nil,        // vc_mac filter disabled for full inventory export
+		&includeVC, // include VC member devices to match Python MistHelper behavior
+		nil,        // unassigned filter disabled for full inventory export
+		nil,        // modified-after filter disabled for full inventory export
+		nil,        // disconnected-before filter disabled for full inventory export
+		&limit,     // page size limit for deterministic pagination behavior
+		&page,      // page number for iterative retrieval
 	)
 	if callErr != nil { // SDK failure should be retried by fetchInventoryPage wrapper
 		return nil, callErr // Return raw SDK error for retry classification upstream
@@ -107,16 +107,16 @@ func (c *Client) fetchSitePage(ctx context.Context, orgID uuid.UUID, page int) (
 
 // fetchInventoryPage fetches a single organisation inventory page with retry on transient failures.
 func (c *Client) fetchInventoryPage(ctx context.Context, orgID uuid.UUID, page int, includeVC bool) ([]models.Inventory, error) {
-	limit := defaultPageLimit // Use shared page-size constant for parity with other paginated operations
+	limit := defaultPageLimit        // Use shared page-size constant for parity with other paginated operations
 	var inventory []models.Inventory // Capture page data from retry closure on success
 
 	err := withRetry(ctx, func() error { // Retry transient SDK errors with exponential backoff
 		pageData, callErr := c.inventoryFetcher(ctx, orgID, limit, page, includeVC) // Fetch one inventory page via injected fetcher
-		if callErr != nil { // Any fetch error should be treated as retryable in this layer
+		if callErr != nil {                                                         // Any fetch error should be treated as retryable in this layer
 			return RetryableError(callErr) // Mark error as retryable for withRetry policy
 		}
 		inventory = pageData // Persist successful page data outside closure for return
-		return nil // Signal success for this attempt
+		return nil           // Signal success for this attempt
 	}, DefaultRetryConfig)
 
 	if err != nil { // Exhausted retries or permanent failure
@@ -152,7 +152,7 @@ func inventoryToMaps(inventory []models.Inventory) ([]map[string]any, error) {
 		if marshalErr != nil {              // Serialization error should never happen for valid SDK models
 			return nil, fmt.Errorf("inventoryToMaps: marshal: %w", marshalErr) // Wrap with conversion context
 		}
-		var row map[string]any // Destination generic map for output writer compatibility
+		var row map[string]any                                            // Destination generic map for output writer compatibility
 		if unmarshalErr := json.Unmarshal(b, &row); unmarshalErr != nil { // Convert JSON object into generic map
 			return nil, fmt.Errorf("inventoryToMaps: unmarshal: %w", unmarshalErr) // Wrap with conversion context
 		}
@@ -205,11 +205,11 @@ func (c *Client) GetOrgInventory(ctx context.Context) ([]map[string]any, error) 
 		return nil, fmt.Errorf("GetOrgInventory: invalid org ID %q: %w", c.cfg.OrgID, err) // Return descriptive parse failure
 	}
 
-	includeVCMembers := true // Preserve Python parity by including VC physical members in inventory response
-	var all []map[string]any // Accumulate all normalized rows across pages
+	includeVCMembers := true  // Preserve Python parity by including VC physical members in inventory response
+	var all []map[string]any  // Accumulate all normalized rows across pages
 	for page := 1; ; page++ { // Continue paging until partial page signals completion
 		inventory, fetchErr := c.fetchInventoryPage(ctx, orgID, page, includeVCMembers) // Fetch one inventory page with retry behavior
-		if fetchErr != nil { // Abort on retrieval error and return deterministic failure
+		if fetchErr != nil {                                                            // Abort on retrieval error and return deterministic failure
 			return nil, fmt.Errorf("GetOrgInventory: %w", fetchErr) // Wrap with operation-level context
 		}
 
@@ -227,5 +227,5 @@ func (c *Client) GetOrgInventory(ctx context.Context) ([]map[string]any, error) 
 	}
 
 	slog.Debug("Listed org inventory", "count", len(all)) // Log final row count after pagination completes
-	return all, nil                                        // Return full normalized inventory for writer routing
+	return all, nil                                       // Return full normalized inventory for writer routing
 }

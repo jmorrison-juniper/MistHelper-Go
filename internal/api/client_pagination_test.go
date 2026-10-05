@@ -174,7 +174,7 @@ func TestGetOrgInventory_MultiPage(t *testing.T) {
 	t.Parallel()   // Independent of other tests and uses only injected hooks
 	callCount := 0 // Track number of inventory-page fetches
 	client := testClientWithInventoryFn(func(_ context.Context, _ uuid.UUID, limit int, page int, includeVC bool) ([]models.Inventory, error) {
-		callCount++ // Count fetch call to validate loop behavior
+		callCount++     // Count fetch call to validate loop behavior
 		if !includeVC { // Python parity guard: includeVC must always be true
 			return nil, errors.New("expected includeVC=true") // Fail immediately on parity regression
 		}
@@ -211,7 +211,7 @@ func TestGetOrgInventory_PageError(t *testing.T) {
 		return nil, want // Simulate transient/permanent API failure from fetcher
 	})
 	_, err := client.GetOrgInventory(context.Background()) // Execute and expect failure
-	if err == nil {                                       // Nil error would hide operation failure
+	if err == nil {                                        // Nil error would hide operation failure
 		t.Fatal("GetOrgInventory returned nil error for failing page fetch") // Fail fast on missing failure propagation
 	}
 	if !errors.Is(err, want) { // Error chain must preserve root cause for diagnostics

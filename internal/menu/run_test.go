@@ -100,9 +100,9 @@ func TestRun_ValidOptionWithCRNULThenEOF(t *testing.T) {
 		},
 	})
 	reader := bufio.NewReader(bytes.NewBufferString("11\r\x00")) // CR-NUL choice followed by EOF
-	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{})    // Build dispatcher
-	err := d.Run(context.Background())                            // Run: pick 11 via CR-NUL Enter, call handler, EOF, return nil
-	if err != nil {                                               // Must return nil on clean EOF after dispatch
+	d := NewDispatcher(reg, reader, io.Discard, &stubWriter{})   // Build dispatcher
+	err := d.Run(context.Background())                           // Run: pick 11 via CR-NUL Enter, call handler, EOF, return nil
+	if err != nil {                                              // Must return nil on clean EOF after dispatch
 		t.Errorf("expected nil error, got %v", err) // Report unexpected error
 	}
 	if called != 1 { // Handler must be called exactly once

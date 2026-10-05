@@ -34,9 +34,9 @@ func SafeInput(reader *bufio.Reader, term io.Writer, prompt string, context stri
 // SSH PTY sessions may send Enter as CR-only, while local terminals often send LF or CRLF.
 func readLineAnyEOL(reader *bufio.Reader) (string, error) {
 	var builder strings.Builder // Collect input bytes until an end-of-line terminator is encountered
-	for {                      // Keep reading one byte at a time until CR, LF, or EOF
+	for {                       // Keep reading one byte at a time until CR, LF, or EOF
 		currentByte, err := reader.ReadByte() // Read next byte from buffered input stream
-		if err != nil {                        // Non-nil means EOF or unexpected read failure
+		if err != nil {                       // Non-nil means EOF or unexpected read failure
 			if err == io.EOF { // EOF may happen with or without pending input
 				if builder.Len() > 0 { // Return partial input when stream ends after typed characters
 					return builder.String(), nil // Treat partial line at EOF as valid user input
@@ -49,7 +49,7 @@ func readLineAnyEOL(reader *bufio.Reader) (string, error) {
 			return builder.String(), nil // Return collected bytes without terminator
 		}
 		if currentByte == '\r' { // CR terminates the line in many SSH PTY configurations
-			nextBytes, peekErr := reader.Peek(1) // Check whether CR is followed by LF (CRLF sequence)
+			nextBytes, peekErr := reader.Peek(1)                               // Check whether CR is followed by LF (CRLF sequence)
 			if peekErr == nil && len(nextBytes) == 1 && nextBytes[0] == '\n' { // Detect CRLF pair safely
 				_, _ = reader.ReadByte() // Consume the LF after CR so next read starts at fresh input
 			}

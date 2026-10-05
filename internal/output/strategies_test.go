@@ -8,7 +8,7 @@ import (
 // TestPKType_Constants verifies that the three PKType constants have the correct string values.
 // These values are used in switch statements throughout the writer; a typo would silently break upserts.
 func TestPKType_Constants(t *testing.T) {
-	t.Parallel() // Safe to run concurrently
+	t.Parallel()                       // Safe to run concurrently
 	if PKTypeNatural != "natural_pk" { // Must match the Python reference implementation exactly
 		t.Errorf("PKTypeNatural = %q, want %q", PKTypeNatural, "natural_pk") // Report the mismatch
 	}
@@ -46,7 +46,7 @@ func TestStrategies_GetOrgInventoryNaturalPK(t *testing.T) {
 	t.Parallel() // Safe to run concurrently with other map-lookup tests
 
 	strategy, ok := Strategies["getOrgInventory"] // Look up strategy used by menu option 26 export path
-	if !ok {                                       // Missing key would break endpoint strategy routing
+	if !ok {                                      // Missing key would break endpoint strategy routing
 		t.Fatal("Strategies missing key \"getOrgInventory\"") // Fail fast when strategy is not registered
 	}
 	if strategy.Type != PKTypeNatural { // Inventory rows should dedupe by stable UUID identity
@@ -94,7 +94,7 @@ func TestStrategies_KnownAutoIncrement(t *testing.T) {
 // TestStrategies_UnknownEndpoint verifies that looking up an unknown key returns ok=false.
 // The writer must handle unknown endpoints gracefully rather than panicking.
 func TestStrategies_UnknownEndpoint(t *testing.T) {
-	t.Parallel()                                        // Safe to run concurrently
+	t.Parallel()                                       // Safe to run concurrently
 	_, ok := Strategies["nonExistentEndpointXYZ12345"] // Look up a key that is definitely not registered
 	if ok {                                            // Must return false for unknown endpoints
 		t.Error("expected ok=false for unknown endpoint, got true") // Report false positive
@@ -104,7 +104,7 @@ func TestStrategies_UnknownEndpoint(t *testing.T) {
 // TestStrategies_AllEntriesHaveType verifies that every registered strategy has a non-empty Type.
 // A missing Type would cause the writer's switch statement to fall through silently.
 func TestStrategies_AllEntriesHaveType(t *testing.T) {
-	t.Parallel() // Safe to run concurrently
+	t.Parallel()                             // Safe to run concurrently
 	for name, strategy := range Strategies { // Iterate every registered endpoint
 		if strategy.Type == "" { // Type must never be empty -- it drives the upsert logic
 			t.Errorf("strategy %q has empty Type", name) // Report the endpoint with the missing type
@@ -115,7 +115,7 @@ func TestStrategies_AllEntriesHaveType(t *testing.T) {
 // TestStrategies_AllEntriesHavePrimaryKey verifies that every strategy has at least one PK column.
 // An empty PrimaryKey slice would produce a SQL statement with no WHERE clause.
 func TestStrategies_AllEntriesHavePrimaryKey(t *testing.T) {
-	t.Parallel() // Safe to run concurrently
+	t.Parallel()                             // Safe to run concurrently
 	for name, strategy := range Strategies { // Iterate every registered endpoint
 		if strategy.Type == PKTypeAutoIncrement { // Auto-increment entries use internal rowid, not an API key
 			continue // Skip auto-increment strategies -- they legitimately use internal PKs
