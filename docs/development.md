@@ -64,8 +64,9 @@ Keep the Python behavior and user-facing wording.
 Define the key strategy before implementing output. Use contexts for
 cancellation, wrap errors, and use the safe input helper for EOF handling.
 Never automate destructive operations without explicit confirmation.
-The [contributor instructions](../.github/copilot-instructions.md) and
-[feature specifications](../specs/README.md) contain the detailed conventions.
+Read the [owner-wide agent rules](../AGENTS.md), the
+[repository-specific instructions](../.github/copilot-instructions.md), and
+[feature specifications](../specs/README.md) for the detailed conventions.
 
 ## Release history
 

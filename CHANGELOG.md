@@ -9,6 +9,9 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Documentation
 
+- 26.10.05.05.07: adopt the owner-wide `AGENTS.md`, replace duplicate agent
+  guidance with repository-specific instructions, and grade both files with
+  the shared STE workflow.
 - 26.10.05.01.40: reorganize the landing README into What, How, Where, When,
   Why, and Who; move usage, development, CI, and interface details under
   `docs/`; embed three genuine offline terminal screenshots and document the
