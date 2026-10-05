@@ -38,7 +38,7 @@ Run these commands from the repository root. A successful gate returns exit code
 
 Create `/tmp/ste-lint-no-dictionary` as an empty directory before the CI-mode command. CI also grades `README.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, and `.github/PULL_REQUEST_TEMPLATE.md`.
 
-`go build ./...` includes the type check. This repository has no separate type-check tool. CI has no standalone format command.
+`go build ./...` includes the type check. This repository has no separate type-check tool. CI has no standalone format command. The `gofmt` formatter in `.golangci.yml` makes the lint gate fail when a Go file is not formatted.
 
 ## Architecture and conventions
 
@@ -95,7 +95,7 @@ Branch protection requires CodeQL, Go tests, security scans, build, vet, and lin
 
 ## Known pitfalls
 
-- `gofmt -l` lists 15 Go files on `main`, and the differences are whitespace only. CI does not run `gofmt`. Issue #67 tracks the repair. Format the files that you change, and do not format the other files in an unrelated pull request.
+- The lint gate fails when a Go file is not formatted. Run `gofmt -w` on each Go file that you change before you commit.
 - The worktree `.git` file points to the main checkout. A container that mounts only the worktree cannot run `git ls-files`. Pass the file list from the host.
 
 ## Key files

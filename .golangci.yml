@@ -1,0 +1,8 @@
+# golangci-lint v2 configuration for MistHelper-Go.
+# The standard linters stay enabled. The gofmt formatter makes CI fail
+# when a Go file is not formatted (issue #67).
+version: "2"
+
+formatters:
+  enable:
+    - gofmt
