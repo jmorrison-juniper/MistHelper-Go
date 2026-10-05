@@ -60,9 +60,8 @@ does not register a quit entry.
 | SSH session directories | `data/sessions/session_<id>/` |
 
 The default output is CSV. Set `OUTPUT_FORMAT=sqlite` in `.env` or pass
-`--format sqlite` to the executable to use SQLite. The current configuration
-reader uses `OUTPUT_FORMAT`, not the planned `MIST_OUTPUT_BACKEND` setting in
-the example file.
+`--format sqlite` to the executable to use SQLite. The `.env.example` file
+lists each variable that the configuration reader uses.
 
 Option 26 fetches organization inventory and writes it with the
 `getOrgInventory` endpoint strategy. SQLite uses natural or composite business
