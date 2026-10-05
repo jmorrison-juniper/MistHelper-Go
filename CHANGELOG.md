@@ -9,6 +9,10 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- 26.10.05.17.20: CI: the auto-merge, linked-issue close, CodeQL, container build,
+  release image, quality-gate issue, and stranded-branch report workflows call
+  [misthelper-devtools](https://github.com/jmorrison-juniper/misthelper-devtools)
+  v0.6.2, pinned by commit SHA `da02d4c6` (#85).
 - 26.10.05.06.41: Feature spec issue form: replace the web UI and Playwright test
   field with checks for the SSH menu, the CSV and SQLite output, and the JSON
   routes (#79).
