@@ -7,6 +7,16 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ## [Unreleased]
 
+### Documentation
+
+- 26.10.05.01.34: reorganize the landing README into What, How, Where, When,
+  Why, and Who; move usage, development, CI, and interface details under
+  `docs/`; embed three genuine offline terminal screenshots and document the
+  absent graphical dashboard as N/A (#64).
+- Clarify the implemented inventory operation, placeholder entries, available
+  output backends, and current runtime configuration; add a dependency-free
+  documentation structure/link/screenshot check.
+
 ### Security
 
 - Deps: `golang.org/x/crypto` v0.53.0 → v0.57.0 fixes three `x/crypto/ssh` advisories that the SSH server reaches (GO-2026-6303, GO-2026-6354, GO-2026-6355); `golang.org/x/term` v0.46.0 and `golang.org/x/sys` v0.48.0 follow
