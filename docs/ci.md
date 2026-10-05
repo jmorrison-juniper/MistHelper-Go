@@ -52,27 +52,8 @@ Each caller pins a release commit; a comment names the release tag.
 | `close-linked-issues.yml` | `reusable-close-linked-issues.yml` |
 | `container-build.yml` (build-and-push job) | `reusable-container-image.yml` |
 | `release.yml` (build-container job) | `reusable-container-image.yml` |
-| `copilot-label-checkbox.yml`, `copilot-auto-assign.yml` | `reusable-copilot-assign.yml` |
 
 The `auto-merge` label merges with `GITHUB_TOKEN`, which starts no push run on
 `main`. The shared workflow then dispatches `ci.yml`, `codeql.yml`, and
 `container-build.yml`. Do not bypass branch protection or add the auto-merge
 label before CodeQL passes.
-
-## Copilot assignment
-
-The Copilot workflows need the `COPILOT_ASSIGN_TOKEN` repository secret.
-GitHub assigns the cloud agent only with an eligible user token, not
-`GITHUB_TOKEN`. The token owner must have a Copilot plan with the cloud agent
-enabled for this repository.
-
-Create a dedicated fine-grained PAT with metadata read access and actions,
-contents, issues, and pull requests read/write access. Store it through GitHub
-Actions secrets, never in this repository. Do not reuse an application's OAuth
-session credential as an automation PAT.
-
-Without the secret, the workflow comments on the issue with the cause.
-For an existing issue, dispatch `copilot-auto-assign.yml` with its issue number.
-Only a successful test-issue assignment proves this setup complete.
-See [issue #57](https://github.com/jmorrison-juniper/MistHelper-Go/issues/57)
-for the owner-managed prerequisites.
