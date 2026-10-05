@@ -17,9 +17,9 @@
   the iteration process.
 -->
 
-**Language/Version**: Go 1.21+  
-**Primary Dependencies**: mistapi-go v0.4.73+, godotenv v1.5.1  
-**Storage**: [if applicable, e.g., SQLite data/mist_data.db, ArangoDB, Redis or N/A]  
+**Language/Version**: Go 1.26.8+  
+**Primary Dependencies**: mistapi-go v0.4.109+, godotenv v1.5.1  
+**Storage**: [if applicable, e.g., CSV in data/, SQLite data/mist_data.db, or N/A]  
 **Testing**: go test -race -cover  
 **Target Platform**: Linux container (alpine), Windows local dev  
 **Project Type**: CLI tool / SSH server / web service  
@@ -64,9 +64,9 @@ cmd/
 internal/
 ├── api/          # Mist API client wrapper
 ├── menu/         # TUI menu system
-├── output/       # CSV, SQLite, ArangoDB, Redis writers
+├── output/       # CSV and SQLite writers
 ├── ssh/          # SSH server (port 2200)
-└── web/          # Web UI (port 8055)
+└── web/          # HTTP status and health routes (port 8055)
 
 tests/
 └── [package]/

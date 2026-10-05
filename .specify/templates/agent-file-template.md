@@ -4,8 +4,8 @@ Auto-generated from all feature plans. Last updated: [DATE]
 
 ## Active Technologies
 
-- **Go**: 1.21+
-- **mistapi-go**: v0.4.73+ (Thomas Munzer's Go Mist API SDK)
+- **Go**: 1.26.8+ (CI and the container builder use 1.27.1)
+- **mistapi-go**: v0.4.109+ (Thomas Munzer's Go Mist API SDK)
 - **godotenv**: v1.5.1
 - **log/slog**: Go standard library structured logging
 - **golangci-lint**: Multi-linter aggregator
@@ -23,9 +23,9 @@ cmd/
 internal/
 ├── api/          # Mist API client wrapper (mistapi-go)
 ├── menu/         # TUI menu system
-├── output/       # CSV, SQLite, ArangoDB, Redis writers
+├── output/       # CSV and SQLite writers (ArangoDB and Redis planned)
 ├── ssh/          # SSH server (port 2200)
-└── web/          # Web UI (port 8055)
+└── web/          # HTTP status and health routes (port 8055)
 
 data/             # Runtime output (git-ignored)
 specs/            # SpecKit feature specs
