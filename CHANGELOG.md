@@ -9,6 +9,10 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- 26.10.05.06.19: Remove the host systemd unit `deploy/misthelper-go.service`,
+  because deployment is container-only. The Podman Quadlet unit
+  `deploy/misthelper-go.container` now publishes its ports on the local host
+  only, and the guide tells how to install it (#70).
 - 26.10.05.06.15: Pull request template: replace the web UI and end-to-end test
   section with a check for the JSON routes, and add the documentation and
   STE checks (#70).
