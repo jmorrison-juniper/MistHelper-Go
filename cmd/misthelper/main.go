@@ -200,7 +200,7 @@ func runMain(args []string) error {
 	}()
 
 	registerStubs(pkgs.registry, pkgs.client) // Populate registry and replace option 26 with real inventory handler
-	startServers(ctx, pkgs)      // Start SSH (port 2200) and web (port 8055) in background goroutines
+	startServers(ctx, pkgs)                   // Start SSH (port 2200) and web (port 8055) in background goroutines
 
 	if err := runOrDispatch(ctx, pkgs.dispatcher, *menuValue); err != nil { // Run interactive menu or direct dispatch
 		shutdown(pkgs) // Attempt graceful shutdown before returning the error
@@ -254,10 +254,10 @@ func registerStubs(r *menu.Registry, client inventoryClient) {
 			handler = makeOrgInventoryHandler(client) // Wire real handler while preserving all other stubs
 		}
 		r.Register(menu.Entry{ // register each operation in the shared registry
-			Number:   op.n,                           // integer option number the user types at the menu prompt
-			Title:    op.name,                        // human-readable name shown in the menu display
-			Category: op.cat,                         // category header used to group related operations visually
-			Handler:  handler,                         // stub for most options; real handler for option 26
+			Number:   op.n,    // integer option number the user types at the menu prompt
+			Title:    op.name, // human-readable name shown in the menu display
+			Category: op.cat,  // category header used to group related operations visually
+			Handler:  handler, // stub for most options; real handler for option 26
 		})
 	}
 	slog.Debug("stub registration complete", "count", len(stubOps)) // confirm after loop completes
@@ -278,23 +278,23 @@ func makeStubHandler(n int, name string) menu.HandlerFunc {
 func makeOrgInventoryHandler(client inventoryClient) menu.HandlerFunc {
 	return func(ctx context.Context, reader *bufio.Reader, term io.Writer, w output.Writer) error { // Capture shared client dependency for each invocation
 		slog.Info("starting org inventory export", "operation", 26) // Log operation start before API call
-		records, err := client.GetOrgInventory(ctx)                   // Fetch and normalize full org inventory dataset
-		if err != nil {                                               // API retrieval failure must be surfaced deterministically
+		records, err := client.GetOrgInventory(ctx)                 // Fetch and normalize full org inventory dataset
+		if err != nil {                                             // API retrieval failure must be surfaced deterministically
 			slog.Error("org inventory fetch failed", "operation", 26, "error", err) // Log error details for operators
-			_, _ = fmt.Fprintf(term, "  Operation 26 failed: %v\n\n", err)              // Print failure to terminal/SSH session
-			return err                                                   // Propagate failure so direct mode exits non-zero
+			_, _ = fmt.Fprintf(term, "  Operation 26 failed: %v\n\n", err)          // Print failure to terminal/SSH session
+			return err                                                              // Propagate failure so direct mode exits non-zero
 		}
 
 		slog.Info("writing org inventory export", "operation", 26, "rows", len(records)) // Log before writer call for action traceability
-		if err := w.Write(ctx, "getOrgInventory", records); err != nil {                      // Route output through writer with required endpoint strategy key
-			slog.Error("org inventory write failed", "operation", 26, "error", err)         // Log writer failure with context
-			_, _ = fmt.Fprintf(term, "  Operation 26 export failed: %v\n\n", err)             // Print writer failure to terminal/SSH session
-			return err                                                                            // Propagate failure so caller receives deterministic error status
+		if err := w.Write(ctx, "getOrgInventory", records); err != nil {                 // Route output through writer with required endpoint strategy key
+			slog.Error("org inventory write failed", "operation", 26, "error", err) // Log writer failure with context
+			_, _ = fmt.Fprintf(term, "  Operation 26 export failed: %v\n\n", err)   // Print writer failure to terminal/SSH session
+			return err                                                              // Propagate failure so caller receives deterministic error status
 		}
 
 		slog.Debug("org inventory export complete", "operation", 26, "rows", len(records)) // Log completion with output cardinality
-		_, _ = fmt.Fprintf(term, "  Exported %d org inventory records.\n\n", len(records))   // Print success summary for interactive users
-		return nil                                                                              // Signal successful completion to dispatcher
+		_, _ = fmt.Fprintf(term, "  Exported %d org inventory records.\n\n", len(records)) // Print success summary for interactive users
+		return nil                                                                         // Signal successful completion to dispatcher
 	}
 }
 

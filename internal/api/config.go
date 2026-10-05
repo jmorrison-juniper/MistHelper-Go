@@ -26,7 +26,7 @@ type Config struct {
 // Returns a descriptive error if MIST_API_TOKEN or MIST_ORG_ID are missing.
 func LoadConfig(format string) (Config, error) {
 	token := os.Getenv("MIST_API_TOKEN") // Read bearer token -- required, never logged
-	orgID := os.Getenv("MIST_ORG_ID")   // Read target org UUID -- required
+	orgID := os.Getenv("MIST_ORG_ID")    // Read target org UUID -- required
 
 	if token == "" { // Token is mandatory before any API call can succeed
 		return Config{}, fmt.Errorf("MIST_API_TOKEN environment variable is not set -- add it to .env")
@@ -38,14 +38,14 @@ func LoadConfig(format string) (Config, error) {
 	outputFmt := resolveOutputFormat(format) // Apply CLI flag precedence over env var
 
 	return Config{
-		APIToken:     token,                         // Validated above
-		OrgID:        orgID,                         // Validated above
-		OutputFormat: outputFmt,                     // CLI flag > env var > default "csv"
-		RateLimitMs:  envInt("API_RATE_LIMIT_MS", 200), // Fixed delay between pages (default 200ms)
-		SSHPort:      envInt("SSH_PORT", 2200),         // SSH server listen port
-		SSHUser:      envStr("SSH_USER", "misthelper"), // SSH login username
+		APIToken:     token,                                    // Validated above
+		OrgID:        orgID,                                    // Validated above
+		OutputFormat: outputFmt,                                // CLI flag > env var > default "csv"
+		RateLimitMs:  envInt("API_RATE_LIMIT_MS", 200),         // Fixed delay between pages (default 200ms)
+		SSHPort:      envInt("SSH_PORT", 2200),                 // SSH server listen port
+		SSHUser:      envStr("SSH_USER", "misthelper"),         // SSH login username
 		SSHPassword:  envStr("SSH_PASSWORD", "misthelper123!"), // SSH login password -- never logged
-		WebPort:      envInt("WEB_PORT", 8055),         // HTTP server listen port
+		WebPort:      envInt("WEB_PORT", 8055),                 // HTTP server listen port
 	}, nil
 }
 

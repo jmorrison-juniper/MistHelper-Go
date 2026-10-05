@@ -10,8 +10,8 @@ import (
 
 // TestWithRetry_SuccessFirstAttempt verifies that op is called once and returns nil on first success.
 func TestWithRetry_SuccessFirstAttempt(t *testing.T) {
-	calls := 0                                   // Count how many times op is invoked
-	op := func() error { calls++; return nil }  // Op succeeds immediately
+	calls := 0                                 // Count how many times op is invoked
+	op := func() error { calls++; return nil } // Op succeeds immediately
 	err := withRetry(context.Background(), op, DefaultRetryConfig)
 	if err != nil { // No error expected on immediate success
 		t.Fatalf("unexpected error: %v", err)
@@ -45,7 +45,7 @@ func TestWithRetry_SuccessAfterRetry(t *testing.T) {
 func TestWithRetry_ExhaustsRetries(t *testing.T) {
 	calls := 0 // Track invocation count
 	op := func() error {
-		calls++ // Count each attempt
+		calls++                                           // Count each attempt
 		return RetryableError(fmt.Errorf("always fails")) // Always retryable failure
 	}
 	cfg := RetryConfig{MaxAttempts: 3, BaseDelay: 1 * time.Millisecond, MaxDelay: 10 * time.Millisecond}

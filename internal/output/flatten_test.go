@@ -7,9 +7,9 @@ import (
 // TestFlattenRecord_Simple verifies that a flat map passes through unchanged.
 // A map with no nested values should be identical after flattening.
 func TestFlattenRecord_Simple(t *testing.T) {
-	input := map[string]any{     // Simple flat map with no nesting
-		"id":   "site-1",        // String value -- should pass through as-is
-		"name": "Site One",      // Another string value -- should pass through as-is
+	input := map[string]any{ // Simple flat map with no nesting
+		"id":   "site-1",   // String value -- should pass through as-is
+		"name": "Site One", // Another string value -- should pass through as-is
 	}
 	result := FlattenRecord(input) // Flatten the simple map
 
@@ -27,7 +27,7 @@ func TestFlattenRecord_Simple(t *testing.T) {
 // TestFlattenRecord_Nested verifies that one level of nesting is flattened with "_" separator.
 // {"location": {"x": 1}} should become {"location_x": 1}.
 func TestFlattenRecord_Nested(t *testing.T) {
-	input := map[string]any{                   // Map with one nested level
+	input := map[string]any{ // Map with one nested level
 		"location": map[string]any{"x": 1.0}, // Nested map should be flattened with underscore
 	}
 	result := FlattenRecord(input) // Flatten the nested map
@@ -43,8 +43,8 @@ func TestFlattenRecord_Nested(t *testing.T) {
 // TestFlattenRecord_DeepNested verifies that two levels of nesting are both flattened.
 // {"a": {"b": {"c": 42}}} should become {"a_b_c": 42}.
 func TestFlattenRecord_DeepNested(t *testing.T) {
-	input := map[string]any{                               // Map with two levels of nesting
-		"a": map[string]any{                               // First nesting level
+	input := map[string]any{ // Map with two levels of nesting
+		"a": map[string]any{ // First nesting level
 			"b": map[string]any{"c": 42}, // Second nesting level -- deepest value
 		},
 	}
@@ -61,7 +61,7 @@ func TestFlattenRecord_DeepNested(t *testing.T) {
 // TestFlattenRecord_SliceBecomesJSON verifies that a slice value is JSON-encoded to a string.
 // Slices must be stored as a single TEXT value so they fit in a CSV cell or SQLite column.
 func TestFlattenRecord_SliceBecomesJSON(t *testing.T) {
-	input := map[string]any{             // Map containing a slice value
+	input := map[string]any{ // Map containing a slice value
 		"tags": []any{"wifi", "guest"}, // Slice should be serialised to JSON string
 	}
 	result := FlattenRecord(input) // Flatten the map with a slice value
@@ -78,8 +78,8 @@ func TestFlattenRecord_SliceBecomesJSON(t *testing.T) {
 // TestFlattenRecord_EmptyInput verifies that nil and empty maps return an empty result map.
 // Callers must not receive a nil map -- an empty map[string]any is always safe to range over.
 func TestFlattenRecord_EmptyInput(t *testing.T) {
-	nilResult := FlattenRecord(nil)               // Nil input should not panic
-	if nilResult == nil {                         // Result must never be nil -- callers range over it
+	nilResult := FlattenRecord(nil) // Nil input should not panic
+	if nilResult == nil {           // Result must never be nil -- callers range over it
 		t.Error("expected non-nil result for nil input") // Report nil result as a bug
 	}
 	if len(nilResult) != 0 { // Nil input should produce an empty (not populated) map

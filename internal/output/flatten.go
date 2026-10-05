@@ -23,12 +23,12 @@ func FlattenRecord(record map[string]any) map[string]any {
 func flattenInto(dst map[string]any, src map[string]any, prefix string) {
 	for key, value := range src { // Iterate every key at the current nesting level
 		fullKey := buildKey(prefix, key) // Compute the fully-qualified flat key for this entry
-		switch typed := value.(type) {  // Dispatch on value type to recurse or encode
+		switch typed := value.(type) {   // Dispatch on value type to recurse or encode
 		case map[string]any:
 			flattenInto(dst, typed, fullKey) // Nested map: recurse deeper with the current key as prefix
 		case []any:
-			encoded, _ := json.Marshal(typed)  // Slice: JSON-encode so the whole list fits in one TEXT cell
-			dst[fullKey] = string(encoded)     // Store the JSON string -- callers can decode if needed
+			encoded, _ := json.Marshal(typed) // Slice: JSON-encode so the whole list fits in one TEXT cell
+			dst[fullKey] = string(encoded)    // Store the JSON string -- callers can decode if needed
 		default:
 			dst[fullKey] = value // Scalar (string, int, float, bool, nil): store the value as-is
 		}

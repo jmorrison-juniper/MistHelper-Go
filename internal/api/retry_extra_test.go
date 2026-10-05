@@ -15,8 +15,8 @@ func TestBackoffDuration_AttemptZero(t *testing.T) {
 		BaseDelay:   100 * time.Millisecond, // Known base delay for easy math
 		MaxDelay:    10 * time.Second,       // Well above the expected result
 	}
-	d := backoffDuration(0, cfg)                  // Attempt 0: factor = 2^0 = 1, so sleep = BaseDelay
-	if d < cfg.BaseDelay {                        // Must be at least BaseDelay (factor 1 * BaseDelay)
+	d := backoffDuration(0, cfg) // Attempt 0: factor = 2^0 = 1, so sleep = BaseDelay
+	if d < cfg.BaseDelay {       // Must be at least BaseDelay (factor 1 * BaseDelay)
 		t.Errorf("expected >= %v, got %v", cfg.BaseDelay, d) // Report actual value for debugging
 	}
 	if d >= cfg.BaseDelay*2+cfg.BaseDelay { // Upper bound: BaseDelay + jitter < BaseDelay + BaseDelay
@@ -32,8 +32,8 @@ func TestBackoffDuration_AttemptOne(t *testing.T) {
 		BaseDelay:   100 * time.Millisecond, // Known base delay for easy math
 		MaxDelay:    10 * time.Second,       // Well above expected result
 	}
-	d := backoffDuration(1, cfg)    // Attempt 1: factor = 2^1 = 2, so sleep = 2*BaseDelay + jitter
-	if d < cfg.BaseDelay*2 {        // Must be at least 2*BaseDelay
+	d := backoffDuration(1, cfg) // Attempt 1: factor = 2^1 = 2, so sleep = 2*BaseDelay + jitter
+	if d < cfg.BaseDelay*2 {     // Must be at least 2*BaseDelay
 		t.Errorf("expected >= %v, got %v", cfg.BaseDelay*2, d) // Report actual value
 	}
 	if d >= cfg.BaseDelay*3+cfg.BaseDelay { // Upper bound: 2*BaseDelay + jitter < 3*BaseDelay
@@ -47,13 +47,13 @@ func TestBackoffDuration_CapsAtMaxDelay(t *testing.T) {
 	t.Parallel() // Safe to run concurrently
 	cfg := RetryConfig{
 		MaxAttempts: 10,
-		BaseDelay:   1 * time.Second,  // Large enough that 2^10 * 1s far exceeds MaxDelay
-		MaxDelay:    2 * time.Second,  // Cap that the exponential would exceed at attempt >=1
+		BaseDelay:   1 * time.Second, // Large enough that 2^10 * 1s far exceeds MaxDelay
+		MaxDelay:    2 * time.Second, // Cap that the exponential would exceed at attempt >=1
 	}
 	// At attempt 8, 2^8 * 1s = 256s, which far exceeds MaxDelay of 2s.
-	d := backoffDuration(8, cfg)                    // Result must be capped at MaxDelay + jitter
-	maxWithJitter := cfg.MaxDelay + cfg.BaseDelay   // Jitter is at most BaseDelay
-	if d > maxWithJitter {                          // Must not exceed MaxDelay + maximum jitter
+	d := backoffDuration(8, cfg)                  // Result must be capped at MaxDelay + jitter
+	maxWithJitter := cfg.MaxDelay + cfg.BaseDelay // Jitter is at most BaseDelay
+	if d > maxWithJitter {                        // Must not exceed MaxDelay + maximum jitter
 		t.Errorf("expected <= %v (MaxDelay+jitter), got %v", maxWithJitter, d) // Report overshoot
 	}
 }
@@ -76,10 +76,10 @@ func TestBackoffDuration_ZeroBaseDelay(t *testing.T) {
 // TestRetryableError_ChainPreserved verifies that the original cause is in the error chain.
 // Callers often inspect the cause error to decide how to handle it, so the chain must be intact.
 func TestRetryableError_ChainPreserved(t *testing.T) {
-	t.Parallel()                                   // Safe to run concurrently
-	cause := &customErr{msg: "original cause"}     // A custom error type to verify chain preservation
-	wrapped := RetryableError(cause)               // Wrap in a retryable error
-	if !IsRetryable(wrapped) {                     // Wrapped error must be retryable
+	t.Parallel()                               // Safe to run concurrently
+	cause := &customErr{msg: "original cause"} // A custom error type to verify chain preservation
+	wrapped := RetryableError(cause)           // Wrap in a retryable error
+	if !IsRetryable(wrapped) {                 // Wrapped error must be retryable
 		t.Error("wrapped error should be retryable") // Fail if retryable check does not work
 	}
 }

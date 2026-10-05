@@ -9,6 +9,8 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Changed
 
+- 26.10.05.06.23: Format the 15 Go files that `gofmt -l` listed. The change is
+  whitespace only (#67).
 - 26.10.05.06.19: Remove the host systemd unit `deploy/misthelper-go.service`,
   because deployment is container-only. The Podman Quadlet unit
   `deploy/misthelper-go.container` now publishes its ports on the local host
