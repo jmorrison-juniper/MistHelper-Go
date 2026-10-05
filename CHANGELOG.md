@@ -51,6 +51,8 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ### Security
 
+- 26.10.05.06.36: `SSH_PASSWORD` is now required. The application does not start
+  when it is empty or not set. The compiled default password is removed (#78).
 - Deps: `golang.org/x/crypto` v0.53.0 → v0.57.0 fixes three `x/crypto/ssh` advisories that the SSH server reaches (GO-2026-6303, GO-2026-6354, GO-2026-6355); `golang.org/x/term` v0.46.0 and `golang.org/x/sys` v0.48.0 follow
 - Build: the Go toolchain moves from 1.25.11, which is out of support, to 1.27.1 in CI and the container build stage; the runtime stage moves from `alpine:3.19` (end of life) to `alpine:3.24`
 - `go.mod` now sets `go 1.26.0`, the minimum that `golang.org/x/crypto` v0.57.0 needs

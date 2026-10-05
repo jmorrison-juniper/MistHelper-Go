@@ -23,10 +23,12 @@ type Config struct {
 
 // LoadConfig reads environment variables and applies the CLI format override.
 // format is the value supplied by the --format flag ("" means no override).
-// Returns a descriptive error if MIST_API_TOKEN or MIST_ORG_ID are missing.
+// Returns a descriptive error if MIST_API_TOKEN, MIST_ORG_ID, or SSH_PASSWORD is missing.
+// SSH_PASSWORD has no compiled default, so the SSH server never accepts a public password.
 func LoadConfig(format string) (Config, error) {
-	token := os.Getenv("MIST_API_TOKEN") // Read bearer token -- required, never logged
-	orgID := os.Getenv("MIST_ORG_ID")    // Read target org UUID -- required
+	token := os.Getenv("MIST_API_TOKEN")     // Read bearer token -- required, never logged
+	orgID := os.Getenv("MIST_ORG_ID")        // Read target org UUID -- required
+	sshPassword := os.Getenv("SSH_PASSWORD") // Read SSH login password -- required, never logged
 
 	if token == "" { // Token is mandatory before any API call can succeed
 		return Config{}, fmt.Errorf("MIST_API_TOKEN environment variable is not set -- add it to .env")
@@ -34,18 +36,21 @@ func LoadConfig(format string) (Config, error) {
 	if orgID == "" { // OrgID scopes every API call; missing means we can't target any resource
 		return Config{}, fmt.Errorf("MIST_ORG_ID environment variable is not set -- add it to .env")
 	}
+	if sshPassword == "" { // A compiled default would let anyone who reads the source log in over SSH
+		return Config{}, fmt.Errorf("SSH_PASSWORD environment variable is not set -- add a strong password to .env")
+	}
 
 	outputFmt := resolveOutputFormat(format) // Apply CLI flag precedence over env var
 
 	return Config{
-		APIToken:     token,                                    // Validated above
-		OrgID:        orgID,                                    // Validated above
-		OutputFormat: outputFmt,                                // CLI flag > env var > default "csv"
-		RateLimitMs:  envInt("API_RATE_LIMIT_MS", 200),         // Fixed delay between pages (default 200ms)
-		SSHPort:      envInt("SSH_PORT", 2200),                 // SSH server listen port
-		SSHUser:      envStr("SSH_USER", "misthelper"),         // SSH login username
-		SSHPassword:  envStr("SSH_PASSWORD", "misthelper123!"), // SSH login password -- never logged
-		WebPort:      envInt("WEB_PORT", 8055),                 // HTTP server listen port
+		APIToken:     token,                            // Validated above
+		OrgID:        orgID,                            // Validated above
+		OutputFormat: outputFmt,                        // CLI flag > env var > default "csv"
+		RateLimitMs:  envInt("API_RATE_LIMIT_MS", 200), // Fixed delay between pages (default 200ms)
+		SSHPort:      envInt("SSH_PORT", 2200),         // SSH server listen port
+		SSHUser:      envStr("SSH_USER", "misthelper"), // SSH login username
+		SSHPassword:  sshPassword,                      // Validated above -- never logged
+		WebPort:      envInt("WEB_PORT", 8055),         // HTTP server listen port
 	}, nil
 }
 
