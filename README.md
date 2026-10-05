@@ -36,7 +36,7 @@ in the docs.
 
 Use this port for development and testing while work continues.
 Read the [operation limits](docs/guide.md#current-status) and
-[release history](CHANGELOG.md) before use.
+[release history](docs/development.md#release-history) before use.
 The [Python project](https://github.com/jmorrison-juniper/MistHelper) remains the
 production reference.
 
