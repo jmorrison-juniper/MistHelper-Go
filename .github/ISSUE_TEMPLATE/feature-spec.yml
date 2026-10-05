@@ -18,7 +18,7 @@ body:
       label: Interfaces & Behavior
       description: How will users interact with this feature? What inputs, outputs, and behaviors are expected?
       placeholder: |
-        Describe CLI flags, menu options, API endpoints, or web UI interactions.
+        Describe CLI flags, SSH menu options, Mist API endpoints, or JSON routes.
         Include expected input formats and output formats (CSV, SQLite, console).
     validations:
       required: true
@@ -100,27 +100,25 @@ body:
       required: false
 
   - type: textarea
-    id: ui-behavior-testing
+    id: operator-checks
     attributes:
-      label: UI Behavior & Automated Testing Expectations
+      label: Operator Interface Checks
       description: |
-        For features involving the web UI (port 8055).
+        How to verify the feature through the interfaces that exist: the SSH menu
+        (port 2200), the CSV and SQLite output, and the JSON routes (port 8055).
+        The HTTP server has JSON routes only, with no graphical pages.
         Read AGENTS.md and .github/copilot-instructions.md for agent rules.
       placeholder: |
-        1. Target URL(s): e.g., http://localhost:8055/, /dashboard, /jobs
-        2. Critical user journeys:
-           - Click "Start Workflow" button -> verify job row appears in table
-           - Fill site filter form -> submit -> verify filtered results
-           - Navigate to settings -> toggle feature flag -> verify saved state
-        3. Assertions:
-           - Page title contains "MistHelper-Go"
-           - Table rows update after API call completes
-           - Error banner appears on invalid input
-        4. Stability contracts (data-testid attributes):
-           - data-testid="workflow-start-btn"
-           - data-testid="site-filter-input"
-           - data-testid="job-results-table"
-        5. Artifacts: screenshots on failure, Playwright traces
-        6. Non-goals: flows not covered by this feature
+        1. SSH menu: menu option number and the prompts it shows,
+           e.g., "ssh -p 2200 misthelper@127.0.0.1 -> option 26 -> output written"
+        2. Unattended run: the flags "--menu 26 --format sqlite" exit 0
+        3. CSV output: file name data/{endpoint}_{timestamp}.csv, expected columns
+        4. SQLite output: table in data/mist_data.db, natural key from
+           internal/output/strategies.go, expected row count for the fake response
+        5. JSON routes (only if internal/web changes): GET / and GET /health
+           return status 200 and the expected fields
+        6. Input handling: end-of-file, an interrupt, and an invalid menu entry
+           stop safely; a destructive operation needs the word CONFIRM
+        7. Non-goals: checks not covered by this feature
     validations:
       required: false
