@@ -7,6 +7,14 @@ Versions use UTC timestamp format: `YY.MM.DD.HH.MM`.
 
 ## [Unreleased]
 
+### Changed
+
+- 26.10.05.06.04: Config: `.env.example` lists only the variables that the code reads:
+  `OUTPUT_FORMAT`, `API_RATE_LIMIT_MS`, `SSH_PORT`, `SSH_USER`,
+  `SSH_PASSWORD`, and `WEB_PORT`. The ArangoDB and Redis variables stay as
+  comments marked as planned. The duplicate `deploy/.env.example` is removed
+  (#70).
+
 ### Removed
 
 - 26.10.05.06.00: CI: remove the Copilot cloud-agent workflows `copilot-auto-assign.yml`,
