@@ -16,8 +16,8 @@ github.com/ncruces/go-strftime v1.1.0 h1:vtPmPWMkb539RGV9WpWT9EwJGvrOCKvMNI4obWL
 github.com/ncruces/go-strftime v1.1.0/go.mod h1:yVaq7iwCN09vHRrKBrrflXT0M9tTMG2KmZ9Fj7xeG/g=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
-github.com/tmunzer/mistapi-go v0.4.109 h1:5+ALJKMU0ZorBUE3yLvScWwj+xtMZ/WyNmAH+qYokXY=
-github.com/tmunzer/mistapi-go v0.4.109/go.mod h1:eG4MxvzT5kPeQzhM5hjrrpcTTMylsOM4m7HgH1nmONY=
+github.com/tmunzer/mistapi-go v0.4.110 h1:y6YTe0wos1qlcgNiHHwqZUc7R7e0uQEtV2UKewMURdQ=
+github.com/tmunzer/mistapi-go v0.4.110/go.mod h1:eG4MxvzT5kPeQzhM5hjrrpcTTMylsOM4m7HgH1nmONY=
 golang.org/x/crypto v0.57.0 h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=
 golang.org/x/crypto v0.57.0/go.mod h1:Fdz0i5U6CoizGwLda9DttjSk6qlZo25zYNtR+ycvuZA=
 golang.org/x/mod v0.41.0 h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=
